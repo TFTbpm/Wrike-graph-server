@@ -1,25 +1,29 @@
-import express from "express";
-import path from "path";
-import cors from "cors";
-import "dotenv/config";
+const express = require("express");
+// import express from "express";
+// import cors from "cors";
+// import "dotenv/config";
 const app = express();
 
-app.use(cors("*"));
+// app.use(cors("*"));
 
 app.use(express.json());
+
+app.get("/", (req, res) => {
+  res.send("api is up on /");
+});
 
 app.post("/wrike", (req, res) => {
   console.log(req.body);
   res.status(200).send("good");
 });
 
-app.use(express.static(path.join("./", "public")));
-
 app.listen(5501, () => {
   console.log("running server");
 });
 
 app.listen();
+
+module.exports = app;
 
 // const client_id = process.env.VITE_client_id;
 // const redirect_uri = process.env.VITE_redirect_uri;
