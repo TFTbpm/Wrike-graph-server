@@ -9,7 +9,7 @@ const app = express();
 app.use(express.json());
 
 app.get("/", (req, res) => {
-  res.send("api is up on /");
+  res.send("up on /");
 });
 
 app.post("/wrike", (req, res) => {
