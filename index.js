@@ -18,12 +18,14 @@ app.post("/wrike", (req, res) => {
 });
 
 app.post("/graph", (req, res) => {
-  console.log(req.url);
   if (req.url.includes("validationToken=")) {
+    // have to check for %3A with a regex and replace matches since decodeURI treats them as special char
     res
       .contentType("text/plain")
       .status(200)
-      .send(req.url.split("validationToken=")[1]);
+      .send(
+        decodeURI(req.url.replace(/%3A/g, ":").split("validationToken=")[1])
+      );
   } else {
     console.log(req.body);
   }
