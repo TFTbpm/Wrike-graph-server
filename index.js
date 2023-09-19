@@ -18,6 +18,7 @@ app.post("/wrike", (req, res) => {
 });
 
 app.post("/graph", (req, res) => {
+  console.log(req.url);
   if (req.url.includes("validationToken=")) {
     res
       .contentType("text/plain")
