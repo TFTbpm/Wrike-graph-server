@@ -17,6 +17,17 @@ app.post("/wrike", (req, res) => {
   res.status(200).send("good");
 });
 
+app.post("/graph", (req, res) => {
+  if (req.url.includes("validationToken=")) {
+    res
+      .contentType("text/plain")
+      .status(200)
+      .send(req.url.split("validationToken=")[1]);
+  } else {
+    console.log(req.body);
+  }
+});
+
 app.listen(5501, () => {
   console.log("running server");
 });
