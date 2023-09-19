@@ -1,5 +1,13 @@
 const express = require("express");
+const { body, validationResult } = require("express-validator");
+const { config } = require("dotenv");
+const crypto = require("crypto");
+config();
 
+const wrikeHookSecret = process.env.wrikeHookSecret;
+const graphClientSecret = process.env.graphClientSecret;
+
+// IEAF5SOTJAABTCOK
 const app = express();
 
 app.use(express.json());
@@ -8,9 +16,20 @@ app.get("/", (req, res) => {
   res.send("up on /");
 });
 
-app.post("/wrike", (req, res) => {
-  console.log(req.body);
-  res.status(200).send("good");
+app.post("/wrike", body("webhookId").notEmpty(), (req, res, next) => {
+  const errors = validationResult(req).errors;
+
+  const xHookSecret = req.get("X-Hook-Secret");
+  calculatedHash = crypto
+    .createHmac("Sha256", wrikeHookSecret)
+    .update(xHookSecret)
+    .digest("hex");
+
+  if (errors.length === 0 && calculatedHash === xHookSecret) {
+    res.set("X-Hook-Secret", calculatedHash).status(200).send();
+  } else {
+    next();
+  }
 });
 
 app.post("/graph", (req, res) => {
@@ -25,6 +44,10 @@ app.post("/graph", (req, res) => {
   } else {
     console.log(req.body);
   }
+});
+
+app.use("*", (req, res) => {
+  res.status(403).send("Something went wrong");
 });
 
 app.listen(5501, () => {
