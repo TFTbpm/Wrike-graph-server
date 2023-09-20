@@ -1,11 +1,8 @@
 const express = require("express");
 const { validationResult, header } = require("express-validator");
 const { config } = require("dotenv");
-const crypto = require("crypto");
+const crypto = require("node:crypto");
 config();
-
-const wrikeHookSecret = process.env.wrikeHookSecret;
-const graphClientSecret = process.env.graphClientSecret;
 
 const app = express();
 
@@ -16,6 +13,7 @@ app.get("/", (req, res) => {
 });
 
 app.post("/wrike", header("X-Hook-Secret").notEmpty(), (req, res, next) => {
+  const wrikeHookSecret = process.env.wrikeHookSecret;
   const errors = validationResult(req).errors;
   if (errors.length === 0) {
     const xHookSecret = req.get("X-Hook-Secret");
@@ -34,6 +32,7 @@ app.post("/wrike", header("X-Hook-Secret").notEmpty(), (req, res, next) => {
 });
 
 app.post("/graph", (req, res) => {
+  const graphClientSecret = process.env.graphClientSecret;
   if (req.url.includes("validationToken=")) {
     // have to check for %3A with a regex and replace matches since decodeURI treats them as special char
     res
@@ -48,7 +47,7 @@ app.post("/graph", (req, res) => {
 });
 
 app.use("*", (req, res) => {
-  res.status(403).send("Something went wrong");
+  res.status(400).send("Something went wrong");
 });
 
 app.listen(5501, () => {
