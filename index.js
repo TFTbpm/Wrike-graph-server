@@ -17,17 +17,17 @@ app.post("/wrike", header("X-Hook-Secret").notEmpty(), (req, res, next) => {
   const errors = validationResult(req).errors;
   if (errors.length === 0) {
     const xHookSecret = req.get("X-Hook-Secret");
-    calculatedHash = crypto
+    const calculatedHash = crypto
       .createHmac("Sha256", wrikeHookSecret)
       .update(xHookSecret)
       .digest("hex");
     if (calculatedHash === xHookSecret) {
       res.set("X-Hook-Secret", calculatedHash).status(200).send();
     } else {
-      next();
+      res.status(400).send("Invalid secret");
     }
   } else {
-    next();
+    res.status(400).send("Incorrect Header");
   }
 });
 
