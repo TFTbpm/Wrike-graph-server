@@ -22,7 +22,7 @@ app.post("/wrike", header("X-Hook-Secret").notEmpty(), (req, res, next) => {
       .update(xHookSecret)
       .digest("hex");
     res.set("X-Hook-Secret", calculatedHash).status(200).send();
-    console.log(calculatedHash, xHookSecret);
+    console.log(calculatedHash, xHookSecret, req.body);
   } else {
     res.status(400).send("Incorrect Header");
   }
