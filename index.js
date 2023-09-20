@@ -17,12 +17,21 @@ app.post("/wrike", header("X-Hook-Secret").notEmpty(), (req, res, next) => {
   const errors = validationResult(req).errors;
   if (errors.length === 0) {
     const xHookSecret = req.get("X-Hook-Secret");
-    const calculatedHash = crypto
-      .createHmac("Sha256", wrikeHookSecret)
-      .update(JSON.stringify(req.body))
-      .digest("hex");
-    res.set("X-Hook-Secret", calculatedHash).status(200).send();
-    console.log(calculatedHash, xHookSecret, req.body, req.headers);
+    if (req.body["requestType"] === "WebHook secret verification") {
+      const calculatedHash = crypto
+        .createHmac("sha256", wrikeHookSecret)
+        .update(xHookSecret)
+        .digest("hex");
+    } else {
+      const calculatedHash = crypto
+        .createHmac("sha256", wrikeHookSecret)
+        .update(JSON.stringify(req.body))
+        .digest("hex");
+      console.log(calculatedHash, xHookSecret);
+    }
+    if (calculatedHash == xHookSecret) {
+      console.log("YEAHHH");
+    }
   } else {
     res.status(400).send("Incorrect Header");
   }
