@@ -19,7 +19,7 @@ app.post("/wrike", header("X-Hook-Secret").notEmpty(), (req, res, next) => {
     const xHookSecret = req.get("X-Hook-Secret");
     const calculatedHash = crypto
       .createHmac("Sha256", wrikeHookSecret)
-      .update(xHookSecret)
+      .update(JSON.stringify(req.body))
       .digest("hex");
     res.set("X-Hook-Secret", calculatedHash).status(200).send();
     console.log(calculatedHash, xHookSecret, req.body, req.headers);
