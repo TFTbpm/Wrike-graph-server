@@ -2,7 +2,12 @@ const express = require("express");
 const { validationResult, header } = require("express-validator");
 const { config } = require("dotenv");
 const crypto = require("node:crypto");
-const refreshWrike = require("./modules/refreshWrike.js");
+const {
+  createTask,
+  modifyTask,
+  deleteTask,
+  getTasks,
+} = require("./modules/wrike/task");
 config();
 
 const app = express();
@@ -11,7 +16,6 @@ app.use(express.json());
 
 app.get("/", (req, res) => {
   res.send("up on /");
-  console.log(refreshWrike);
 });
 
 app.post("/wrike", header("X-Hook-Secret").notEmpty(), (req, res, next) => {
