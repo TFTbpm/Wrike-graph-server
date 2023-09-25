@@ -13,7 +13,7 @@ config();
 const app = express();
 
 app.use(express.json());
-// test transfer
+
 app.get("/", (req, res) => {
   res.send("up on /");
 });
