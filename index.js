@@ -2,6 +2,7 @@ const express = require("express");
 const { validationResult, header } = require("express-validator");
 const { config } = require("dotenv");
 const crypto = require("node:crypto");
+const refreshWrike = require("./modules/refreshWrike.js");
 config();
 
 const app = express();
@@ -10,6 +11,7 @@ app.use(express.json());
 
 app.get("/", (req, res) => {
   res.send("up on /");
+  console.log(refreshWrike);
 });
 
 app.post("/wrike", header("X-Hook-Secret").notEmpty(), (req, res, next) => {
@@ -30,7 +32,8 @@ app.post("/wrike", header("X-Hook-Secret").notEmpty(), (req, res, next) => {
         .createHmac("sha256", wrikeHookSecret)
         .update(JSON.stringify(req.body))
         .digest("hex");
-      console.log(calculatedHash, xHookSecret);
+      // console.log(calculatedHash, xHookSecret);
+      console.log(req.body);
       res.status(200).send("good");
     }
   } else {
@@ -64,15 +67,3 @@ app.listen(5501, () => {
 app.listen();
 
 module.exports = app;
-
-// const client_id = process.env.VITE_client_id;
-// const redirect_uri = process.env.VITE_redirect_uri;
-// const graphScope = ["https://graph.microsoft.com/.default", "offline_access"];
-// const wrikeScope = ["Default"];
-// const salesSiteID = process.env.VITE_salesSiteID;
-// const customerListID = process.env.VITE_customerListID;
-// const rfqListID = process.env.VITE_rfqListID;
-// const wrikeSalesSpaceID = process.env.VITE_wrikeSalesSpaceID;
-// const tenantID = process.env.VITE_tenantID;
-// const clientID = process.env.VITE_clientID;
-// const graphRedirectURI = process.env.VITE_graphRedirectURI;
