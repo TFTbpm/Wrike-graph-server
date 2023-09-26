@@ -2,12 +2,7 @@ const express = require("express");
 const { validationResult, header } = require("express-validator");
 const { config } = require("dotenv");
 const crypto = require("node:crypto");
-const {
-  createTask,
-  modifyTask,
-  deleteTask,
-  getTasks,
-} = require("./modules/wrike/task");
+const wrikeRouting = require("./modules/wrike/wrikeRouting");
 config();
 
 const app = express();
@@ -38,6 +33,7 @@ app.post("/wrike", header("X-Hook-Secret").notEmpty(), (req, res, next) => {
         .digest("hex");
       // console.log(calculatedHash, xHookSecret);
       console.log(req.body);
+      wrikeRouting(req.body);
       res.status(200).send("good");
     }
   } else {
