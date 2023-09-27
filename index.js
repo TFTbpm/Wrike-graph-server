@@ -11,7 +11,6 @@ let rawRequestBody = "";
 app.post("/wrike", (req, res, next) => {
   req.on("data", (chunk) => {
     rawRequestBody += chunk;
-    console.log(rawRequestBody);
   });
   next();
 });
@@ -36,11 +35,12 @@ app.post("/wrike", header("X-Hook-Secret").notEmpty(), (req, res, next) => {
         .createHmac("sha256", wrikeHookSecret)
         .update(rawRequestBody)
         .digest("hex");
-      console.log(
-        req.body,
-        `My hash: ${calculatedHash} \n Wrike hash ${xHookSecret}`
-      );
-      res.status(200).send("good");
+      if (xHookSecret !== calculatedHash) {
+        res.status(401).send("Invalid hash");
+      } else {
+        res.status(200).send("good");
+        console.log("matches");
+      }
     }
   } else {
     res.status(400).send("Incorrect Header");
