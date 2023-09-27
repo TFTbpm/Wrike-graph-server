@@ -9,6 +9,7 @@ const app = express();
 let rawRequestBody = "";
 
 app.post("/wrike", (req, res, next) => {
+  rawRequestBody = "";
   req.on("data", (chunk) => {
     rawRequestBody += chunk;
   });
