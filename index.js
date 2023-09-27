@@ -36,10 +36,15 @@ app.post("/wrike", header("X-Hook-Secret").notEmpty(), (req, res, next) => {
         .update(rawRequestBody)
         .digest("hex");
       if (xHookSecret !== calculatedHash) {
-        res.status(401).send("Invalid hash");
+        res.status(401).send(`Invalid hash`);
+        console.log(
+          `body: ${req.body} \n raw: ${rawRequestBody} \n xhooksecret: ${xHookSecret} \n calculated: ${calculatedHash}`
+        );
       } else {
         res.status(200).send("good");
-        console.log("matches");
+        console.log(
+          `xhooksecret ${xHookSecret} matches calculated ${calculatedHash}`
+        );
       }
     }
   } else {
