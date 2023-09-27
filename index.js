@@ -32,7 +32,10 @@ app.post("/wrike", header("X-Hook-Secret").notEmpty(), (req, res, next) => {
         .update(JSON.stringify(req.body))
         .digest("hex");
       // console.log(calculatedHash, xHookSecret);
-      console.log(req.body);
+      console.log(
+        req.body,
+        `My hash: ${calculatedHash} \n Wrike hash ${xHookSecret}`
+      );
       wrikeRouting(req.body);
       res.status(200).send("good");
     }
