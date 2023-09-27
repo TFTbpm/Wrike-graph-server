@@ -3,10 +3,18 @@ const { validationResult, header } = require("express-validator");
 const { config } = require("dotenv");
 const crypto = require("node:crypto");
 const wrikeRouting = require("./modules/wrike/wrikeRouting");
+const rateLimit = require("express-rate-limit");
 config();
 
-const app = express();
 let rawRequestBody = "";
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+});
+
+const app = express();
+
+app.use(limiter);
 
 app.post("/wrike", (req, res, next) => {
   rawRequestBody = "";
