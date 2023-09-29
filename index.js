@@ -6,7 +6,14 @@ const wrikeRouting = require("./modules/wrike/wrikeRouting");
 const rateLimit = require("express-rate-limit");
 config();
 
+// This is hashed to verify the source
 let rawRequestBody = "";
+// This is used to verify we haven't already sent that info
+let history = { Wrike: null, Graph: null };
+// This is used to prevent
+let systemBlock = false;
+
+// This will prevent DDoS
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // limit each IP to 100 requests per windowMs
@@ -49,8 +56,20 @@ app.post("/wrike", header("X-Hook-Secret").notEmpty(), (req, res, next) => {
         console.log(
           `body: ${req.body} \n raw: ${rawRequestBody} \n xhooksecret: ${xHookSecret} \n calculated: ${calculatedHash}`
         );
+      } else if (
+        crypto
+          .createHash("sha256")
+          .update(JSON.stringify(req.body))
+          .digest("hex") == history.Wrike
+      ) {
+        res.status(202).send("already updated");
+        console.log("Already updated");
       } else {
         res.status(200).send("good");
+        history.Wrike = crypto
+          .createHash("sha256")
+          .update(JSON.stringify(req.body))
+          .digest("hex");
         console.log(
           `xhooksecret ${xHookSecret} matches calculated ${calculatedHash}`
         );
