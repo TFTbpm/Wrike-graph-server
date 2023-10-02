@@ -10,13 +10,13 @@ config();
 let rawRequestBody = "";
 // This is used to verify we haven't already sent that info
 let history = { Wrike: null, Graph: null };
-// This is used to prevent
-let systemBlock = false;
 
 // This will prevent DDoS
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+  max: 300,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
 });
 
 const app = express();
