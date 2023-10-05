@@ -85,18 +85,20 @@ app.get("/", (req, res) => {
 });
 
 app.post("/graph", (req, res) => {
-  const graphClientSecret = process.env.graphClientSecret;
-  if (req.url.includes("validationToken=")) {
-    // have to check for %3A with a regex and replace matches since decodeURI treats them as special char
-    res
-      .contentType("text/plain")
-      .status(200)
-      .send(
-        decodeURI(req.url.replace(/%3A/g, ":").split("validationToken=")[1])
-      );
-  } else {
-    console.log(req.body);
-  }
+  // const graphClientSecret = process.env.graphClientSecret;
+  // if (req.url.includes("validationToken=")) {
+  //   // have to check for %3A with a regex and replace matches since decodeURI treats them as special char
+  //   res
+  //     .contentType("text/plain")
+  //     .status(200)
+  //     .send(
+  //       decodeURI(req.url.replace(/%3A/g, ":").split("validationToken=")[1])
+  //     );
+  // } else {
+  //   console.log(req.body);
+  // }
+  res.status(200).send("good");
+  console.log(JSON.stringify(req.body));
 });
 
 app.use("*", (req, res) => {
