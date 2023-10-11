@@ -4,12 +4,13 @@ const { config } = require("dotenv");
 const crypto = require("node:crypto");
 const wrikeRouting = require("./modules/wrike/wrikeRouting");
 const rateLimit = require("express-rate-limit");
+const getRFQData = require("./modules/graph/rfq");
 config();
 
 // This is hashed to verify the source
 let rawRequestBody = "";
 // This is used to verify we haven't already sent that info
-let history = { Wrike: null, Graph: null };
+let history = { wrike: null, Graph: null };
 
 // This will prevent DDoS
 const limiter = rateLimit({
@@ -60,13 +61,13 @@ app.post("/wrike", header("X-Hook-Secret").notEmpty(), (req, res, next) => {
         crypto
           .createHash("sha256")
           .update(JSON.stringify(req.body))
-          .digest("hex") == history.Wrike
+          .digest("hex") == history.wrike
       ) {
         res.status(202).send("already updated");
         console.log("Already updated");
       } else {
         res.status(200).send("good");
-        history.Wrike = crypto
+        history.wrike = crypto
           .createHash("sha256")
           .update(JSON.stringify(req.body))
           .digest("hex");
@@ -85,7 +86,7 @@ app.get("/", (req, res) => {
 });
 
 app.post("/graph", (req, res) => {
-  const graphClientSecret = process.env.graph_client_secret;
+  const graphClientSecret = process.env.graph_api_secret;
   if (req.url.includes("validationToken=")) {
     // have to check for %3A with a regex and replace matches since decodeURI treats them as special char
     res
@@ -96,6 +97,33 @@ app.post("/graph", (req, res) => {
       );
   } else {
     console.log(req.body);
+    const params = new URLSearchParams({
+      client_id: process.env.graph_client_id,
+      scope: "https://graph.microsoft.com/.default",
+      client_secret: graphClientSecret,
+      grant_type: "client_credentials",
+    }).toString();
+    // console.log(params);
+    fetch(
+      `https://login.microsoftonline.com/${process.env.graph_tenant_id}/oauth2/v2.0/token`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: params,
+      }
+    ).then((response) => {
+      response.json().then((data) => {
+        getRFQData(
+          process.env.graph_site_id_sales,
+          process.env.graph_list_id_rfq,
+          data.access_token
+        ).then((rfqData) => {
+          console.log(rfqData);
+        });
+      });
+    });
   }
   res.status(200).send("good");
   console.log(JSON.stringify(req.body));
