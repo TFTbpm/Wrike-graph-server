@@ -10,7 +10,14 @@ config();
 // This is hashed to verify the source
 let rawRequestBody = "";
 // This is used to verify we haven't already sent that info
-let history = { wrike: null, Graph: null };
+let history = {
+  wrike: null,
+  graph_1: null,
+  graph_2: null,
+  graph_3: null,
+  graph_4: null,
+  graph_5: null,
+};
 
 // This will prevent DDoS
 const limiter = rateLimit({
@@ -19,6 +26,8 @@ const limiter = rateLimit({
   standardHeaders: "draft-7",
   legacyHeaders: false,
 });
+
+app.set("trust proxy", 1);
 
 const app = express();
 
