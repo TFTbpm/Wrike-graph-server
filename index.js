@@ -27,11 +27,11 @@ const limiter = rateLimit({
   legacyHeaders: false,
 });
 
-app.set("trust proxy", 1);
-
 const app = express();
 
 app.use(limiter);
+
+app.set("trust proxy", 1);
 
 app.post("/wrike", (req, res, next) => {
   rawRequestBody = "";
