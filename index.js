@@ -123,6 +123,7 @@ app.post("/graph", async (req, res) => {
       process.env.graph_list_id_rfq,
       accessData.access_token
     );
+    console.log(rfqData);
     rfqData.value.forEach((element) => {
       currentHistory.push({
         title: element.fields.Title,
@@ -152,6 +153,8 @@ app.post("/graph", async (req, res) => {
         .update(JSON.stringify(rfq))
         .digest("hex");
       // TODO: add in a function which removes anything over 10 entries
+
+      // CREATE RFQ ---------------------------
       if (!graphHistory.includes(calculatedHash)) {
         graphHistory.push(calculatedHash);
         if (wrikeTitles.filter((r) => r.title == rfq.title).length < 1) {
@@ -177,7 +180,9 @@ app.post("/graph", async (req, res) => {
             wrikeTitles.push({ title: rfq.title, id: data.data[0].id });
           });
           wrikeTitles.push(rfq.title);
-          console.log("is new", rfq);
+          // console.log("is new", rfq);
+
+          // MODIFY RFQ --------------------------------------
         } else {
           // modify task
           const taskID = wrikeTitles.filter((t) => t.title === rfq.title)[0].id;
@@ -197,7 +202,7 @@ app.post("/graph", async (req, res) => {
             null,
             null
           );
-          console.log("not new, but modified", rfq);
+          // console.log("not new, but modified", rfq);
         }
       }
     });

@@ -44,6 +44,8 @@ async function createTask(
       fields: fields || null, // array
     };
 
+    console.log(params);
+
     const queryParams = [];
 
     for (const key in params) {
