@@ -10,14 +10,10 @@ config();
 // This is hashed to verify the source
 let rawRequestBody = "";
 // This is used to verify we haven't already sent that info
-let history = {
-  wrike: null,
-  graph_1: null,
-  graph_2: null,
-  graph_3: null,
-  graph_4: null,
-  graph_5: null,
-};
+let wrikeHistory = [];
+let graphHistory = [1, 2, 3, 4, 5];
+// TODO: add in a handler for when marked for compelted to remove from this array
+let wrikeTitles = [];
 
 // This will prevent DDoS
 const limiter = rateLimit({
@@ -43,7 +39,7 @@ app.post("/wrike", (req, res, next) => {
 
 app.use(express.json());
 
-app.post("/wrike", header("X-Hook-Secret").notEmpty(), (req, res, next) => {
+app.post("/wrike", header("X-Hook-Secret").notEmpty(), (req, res) => {
   const wrikeHookSecret = process.env.wrike_hook_secret;
   const errors = validationResult(req).errors;
   if (errors.length === 0) {
@@ -54,7 +50,6 @@ app.post("/wrike", header("X-Hook-Secret").notEmpty(), (req, res, next) => {
         .update(xHookSecret)
         .digest("hex");
       // Change
-      console.log(calculatedHash, xHookSecret);
       res.status(200).set("X-Hook-Secret", calculatedHash).send();
     } else {
       const calculatedHash = crypto
@@ -70,13 +65,13 @@ app.post("/wrike", header("X-Hook-Secret").notEmpty(), (req, res, next) => {
         crypto
           .createHash("sha256")
           .update(JSON.stringify(req.body))
-          .digest("hex") == history.wrike
+          .digest("hex") == wrikeHistory
       ) {
         res.status(202).send("already updated");
         console.log("Already updated");
       } else {
         res.status(200).send("good");
-        history.wrike = crypto
+        wrikeHistory = crypto
           .createHash("sha256")
           .update(JSON.stringify(req.body))
           .digest("hex");
@@ -94,8 +89,9 @@ app.get("/", (req, res) => {
   res.send("up on /");
 });
 
-app.post("/graph", (req, res) => {
+app.post("/graph", async (req, res) => {
   const graphClientSecret = process.env.graph_api_secret;
+  let currentHistory = [];
   if (req.url.includes("validationToken=")) {
     // have to check for %3A with a regex and replace matches since decodeURI treats them as special char
     res
@@ -105,15 +101,13 @@ app.post("/graph", (req, res) => {
         decodeURI(req.url.replace(/%3A/g, ":").split("validationToken=")[1])
       );
   } else {
-    console.log(req.body);
     const params = new URLSearchParams({
       client_id: process.env.graph_client_id,
       scope: "https://graph.microsoft.com/.default",
       client_secret: graphClientSecret,
       grant_type: "client_credentials",
     }).toString();
-    // console.log(params);
-    fetch(
+    let response = await fetch(
       `https://login.microsoftonline.com/${process.env.graph_tenant_id}/oauth2/v2.0/token`,
       {
         method: "POST",
@@ -122,20 +116,46 @@ app.post("/graph", (req, res) => {
         },
         body: params,
       }
-    ).then((response) => {
-      response.json().then((data) => {
-        getRFQData(
-          process.env.graph_site_id_sales,
-          process.env.graph_list_id_rfq,
-          data.access_token
-        ).then((rfqData) => {
-          console.log(rfqData);
-        });
+    );
+    const accessData = await response.json();
+    let rfqData = await getRFQData(
+      process.env.graph_site_id_sales,
+      process.env.graph_list_id_rfq,
+      accessData.access_token
+    );
+    rfqData.value.forEach((element) => {
+      currentHistory.push({
+        title: element.fields.Title,
+        url: element.fields._dlc_DocIdUrl.Url,
+        accountType: element.fields.Account_x0020_Type,
+        contactEmail: element.fields.Contact_x0020_Email,
+        contactName: element.fields.Contact_x0020_Name,
+        customerName: element.fields.Customer_x0020_Name,
+        customerRequestedDate:
+          element.fields.Customer_x0020_Requested_x0020_Date,
+        internalDueDate: element.fields.Internal_x0020_Due_x0020_Date,
+        numberOfLineItems:
+          element.fields.Number_x0020_of_x0020_Line_x0020_Items,
+        priority: element.fields.Priority,
+        quoteSource: element.fields.Quote_x0020_Source,
+        status: element.fields.Status,
+        submissionMethod: element.fields.Submission_x0020_Method,
+        modified: element.fields.Modified,
+        id: element.id,
       });
+    });
+    currentHistory.forEach((rfq) => {
+      const calculatedHash = crypto
+        .createHmac("sha256", graphClientSecret)
+        .update(JSON.stringify(rfq))
+        .digest("hex");
+      // TODO: add in a function which removes anything over 10 entries
+      if (!graphHistory.includes(calculatedHash)) {
+        graphHistory.push(calculatedHash);
+      }
     });
   }
   res.status(200).send("good");
-  console.log(JSON.stringify(req.body));
 });
 
 app.use("*", (req, res) => {
