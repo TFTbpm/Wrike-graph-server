@@ -14,6 +14,7 @@ async function createTask(
   customStatus,
   fields
 ) {
+  console.log("hello");
   try {
     if (title === undefined || folderId === undefined) {
       return;
