@@ -173,6 +173,7 @@ app.post("/graph", async (req, res) => {
             null,
             null
           ).then((data) => {
+            console.log(data);
             wrikeTitles.push({ title: rfq.title, id: data.data[0].id });
           });
           wrikeTitles.push(rfq.title);
