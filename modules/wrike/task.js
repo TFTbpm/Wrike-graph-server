@@ -29,18 +29,19 @@ async function createTask(
     ];
 
     const params = {
-      title: title,
-      description: description,
-      status: status,
-      importance: importance,
-      dates: dates, // obj
-      shareds: shareds, //array
-      parents: parents, // array
-      responsibles: responsibles, // array
-      metadata: metadata, // array
-      customFields: customFields, // array
-      customStatus: customStatus,
-      fields: fields, // array
+      //
+      title: title || null,
+      description: description || null,
+      status: status || null,
+      importance: importance || null,
+      dates: dates || null, // obj
+      shareds: shareds || null, //array
+      parents: parents || null, // array
+      responsibles: responsibles || null, // array
+      metadata: metadata || null, // array
+      customFields: customFields || null, // array
+      customStatus: customStatus || null,
+      fields: fields || null, // array
     };
 
     const queryParams = [];
@@ -103,7 +104,7 @@ async function modifyTask(
     if (taskId === undefined || folderId === undefined) {
       return;
     }
-    const obj = {
+    const params = {
       description: description || null,
       status: status || null,
       importance: importance || null,
@@ -116,14 +117,23 @@ async function modifyTask(
       customStatus: customStatus || null,
       fields: fields || null,
     };
-    for (let item in obj) {
-      if (obj[item] === null) {
-        delete obj[item];
+    const queryParams = [];
+
+    for (const key in params) {
+      if (params[key] !== null) {
+        if (stringArr.includes(key)) {
+          // if its a string
+          queryParams.push(`${key}=${encodeURIComponent(params[key])}`);
+        } else {
+          // if its an object
+          queryParams.push(`${key}=${JSON.stringify(params[key])}`);
+        }
       }
     }
-    const params = new URLSearchParams(obj).toString();
-    const URL = `https://www.wrike.com/api/v4/tasks/${taskId}?${params}`;
-    //   console.log(URL);
+
+    const queryString = queryParams.join("&");
+
+    const URL = `https://www.wrike.com/api/v4/tasks/${taskId}?${queryString}`;
     const response = await fetch(URL, {
       method: "PUT",
       headers: {

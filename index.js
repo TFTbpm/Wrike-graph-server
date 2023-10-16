@@ -154,34 +154,54 @@ app.post("/graph", async (req, res) => {
       // TODO: add in a function which removes anything over 10 entries
       if (!graphHistory.includes(calculatedHash)) {
         graphHistory.push(calculatedHash);
-        if (!wrikeTitles.includes(rfq.title)) {
-          // createTask(
-          //   rfq.title,
-          //   process.env.wrike_folder_rfq,
-          //   process.env.wrike_perm_access_token,
-          //   null,
-          //   "Active",
-          //   null,
-          //   {
-          //     due: rfq.internalDueDate.slice(0, rfq.internalDueDate.length - 2),
-          //   },
-          //   null,
-          //   null,
-          //   null,
-          //   null,
-          //   null,
-          //   null,
-          //   null
-          // );
-          console.log("is new", rfq);
+        if (wrikeTitles.filter((r) => r.title == rfq.title).length < 1) {
+          createTask(
+            rfq.title,
+            process.env.wrike_folder_rfq,
+            process.env.wrike_perm_access_token,
+            null,
+            "Active",
+            null,
+            {
+              due: rfq.internalDueDate.slice(0, rfq.internalDueDate.length - 2),
+            },
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ).then((data) => {
+            wrikeTitles.push({ title: rfq.title, id: data.data[0].id });
+          });
           wrikeTitles.push(rfq.title);
+          console.log("is new", rfq);
         } else {
           // modify task
+          const taskID = wrikeTitles.filter((t) => t.title === rfq.title)[0].id;
+          modifyTask(
+            taskID,
+            process.env.wrike_folder_rfq,
+            process.env.wrike_perm_access_token,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          );
+          console.log("not new, but modified", rfq);
         }
       }
     });
+    res.status(200).send("good");
   }
-  res.status(200).send("good");
 });
 
 app.use("*", (req, res) => {
