@@ -29,7 +29,6 @@ async function createTask(
     ];
 
     const params = {
-      //
       title: title || null,
       description: description || null,
       status: status || null,
@@ -44,7 +43,7 @@ async function createTask(
       fields: fields || null, // array
     };
 
-    console.log(params);
+    console.log("params \n", params);
 
     const queryParams = [];
 
