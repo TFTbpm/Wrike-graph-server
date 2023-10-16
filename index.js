@@ -179,7 +179,6 @@ app.post("/graph", async (req, res) => {
             console.log(data);
             wrikeTitles.push({ title: rfq.title, id: data.data[0].id });
           });
-          wrikeTitles.push(rfq.title);
           // console.log("is new", rfq);
 
           // MODIFY RFQ --------------------------------------
