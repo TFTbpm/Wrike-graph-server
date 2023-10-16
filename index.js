@@ -123,7 +123,7 @@ app.post("/graph", async (req, res) => {
       process.env.graph_list_id_rfq,
       accessData.access_token
     );
-    console.log(rfqData);
+    // console.log(rfqData);
     rfqData.value.forEach((element) => {
       currentHistory.push({
         title: element.fields.Title,
