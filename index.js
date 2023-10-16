@@ -2,7 +2,7 @@ const express = require("express");
 const { validationResult, header } = require("express-validator");
 const { config } = require("dotenv");
 const crypto = require("node:crypto");
-const wrikeRouting = require("./modules/wrike/wrikeRouting");
+const { createTask, modifyTask } = require("./modules/wrike/task");
 const rateLimit = require("express-rate-limit");
 const getRFQData = require("./modules/graph/rfq");
 config();
@@ -133,7 +133,9 @@ app.post("/graph", async (req, res) => {
         customerName: element.fields.Customer_x0020_Name,
         customerRequestedDate:
           element.fields.Customer_x0020_Requested_x0020_Date,
-        internalDueDate: element.fields.Internal_x0020_Due_x0020_Date,
+        internalDueDate:
+          element.fields.Internal_x0020_Due_x0020_Date ||
+          element.fields.Customer_x0020_Requested_x0020_Date,
         numberOfLineItems:
           element.fields.Number_x0020_of_x0020_Line_x0020_Items,
         priority: element.fields.Priority,
@@ -152,6 +154,30 @@ app.post("/graph", async (req, res) => {
       // TODO: add in a function which removes anything over 10 entries
       if (!graphHistory.includes(calculatedHash)) {
         graphHistory.push(calculatedHash);
+        if (!wrikeTitles.includes(rfq.title)) {
+          // createTask(
+          //   rfq.title,
+          //   process.env.wrike_folder_rfq,
+          //   process.env.wrike_perm_access_token,
+          //   null,
+          //   "Active",
+          //   null,
+          //   {
+          //     due: rfq.internalDueDate.slice(0, rfq.internalDueDate.length - 2),
+          //   },
+          //   null,
+          //   null,
+          //   null,
+          //   null,
+          //   null,
+          //   null,
+          //   null
+          // );
+          console.log("is new", rfq);
+          wrikeTitles.push(rfq.title);
+        } else {
+          // modify task
+        }
       }
     });
   }

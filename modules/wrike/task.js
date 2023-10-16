@@ -18,42 +18,67 @@ async function createTask(
     if (title === undefined || folderId === undefined) {
       return;
     }
-    const obj = {
+
+    // these need to be defined since Wrike doesnt take URI encoding for objects
+    const stringArr = [
+      "title",
+      "description",
+      "status",
+      "importance",
+      "customStatus",
+    ];
+
+    const params = {
       title: title,
-      description: description || null,
-      status: status || null,
-      importance: importance || null,
-      dates: dates || null,
-      shareds: shareds || null,
-      parents: parents || null,
-      responsibles: responsibles || null,
-      metadata: metadata || null,
-      customFields: customFields || null,
-      customStatus: customStatus || null,
-      fields: fields || null,
+      description: description,
+      status: status,
+      importance: importance,
+      dates: dates, // obj
+      shareds: shareds, //array
+      parents: parents, // array
+      responsibles: responsibles, // array
+      metadata: metadata, // array
+      customFields: customFields, // array
+      customStatus: customStatus,
+      fields: fields, // array
     };
-    for (let item in obj) {
-      if (obj[item] === null) {
-        delete obj[item];
+
+    const queryParams = [];
+
+    for (const key in params) {
+      if (params[key] !== null) {
+        if (stringArr.includes(key)) {
+          // if its a string
+          queryParams.push(`${key}=${encodeURIComponent(params[key])}`);
+        } else {
+          // if its an object
+          queryParams.push(`${key}=${JSON.stringify(params[key])}`);
+        }
       }
     }
-    const params = new URLSearchParams(obj).toString();
-    const URL = `https://www.wrike.com/api/v4/folders/${folderId}/tasks?${params}`;
-    //   console.log(URL);
+
+    const queryString = queryParams.join("&");
+
+    const URL = `https://www.wrike.com/api/v4/folders/${folderId}/tasks?${queryString}`;
+    console.log(URL);
+
     const response = await fetch(URL, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${access_token}`,
+        "Content-Type": "application/json",
       },
     });
+
     if (!response.ok) {
       console.log(response);
       throw new Error(`Request failed with status ${response.status}`);
     }
+
     const data = await response.json();
-    return await data;
+    return data;
   } catch (error) {
-    console.error(`An error occured while creating a task: ${error}`);
+    console.error(`An error occurred while creating a task: ${error}`);
     throw error;
   }
 }
