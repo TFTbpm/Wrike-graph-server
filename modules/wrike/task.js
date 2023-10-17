@@ -14,7 +14,6 @@ async function createTask(
   customStatus,
   fields
 ) {
-  console.log("hello");
   try {
     if (title === undefined || folderId === undefined) {
       return;
@@ -44,8 +43,6 @@ async function createTask(
       fields: fields || null, // array
     };
 
-    console.log("params \n", params);
-
     const queryParams = [];
 
     for (const key in params) {
@@ -72,9 +69,9 @@ async function createTask(
         "Content-Type": "application/json",
       },
     });
+    // console.log(response);
 
     if (!response.ok) {
-      console.log(response);
       throw new Error(`Request failed with status ${response.status}`);
     }
 
