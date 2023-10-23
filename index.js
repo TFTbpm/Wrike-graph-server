@@ -3,6 +3,7 @@ const { validationResult, header } = require("express-validator");
 const { config } = require("dotenv");
 const crypto = require("node:crypto");
 const { createTask, modifyTask } = require("./modules/wrike/task");
+const graphAccessData = require("./modules/graph/accessToken");
 const rateLimit = require("express-rate-limit");
 const getRFQData = require("./modules/graph/rfq");
 config();
@@ -139,23 +140,7 @@ app.post("/graph", async (req, res) => {
         decodeURI(req.url.replace(/%3A/g, ":").split("validationToken=")[1])
       );
   } else {
-    const params = new URLSearchParams({
-      client_id: process.env.graph_client_id,
-      scope: "https://graph.microsoft.com/.default",
-      client_secret: graphClientSecret,
-      grant_type: "client_credentials",
-    }).toString();
-    let response = await fetch(
-      `https://login.microsoftonline.com/${process.env.graph_tenant_id}/oauth2/v2.0/token`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body: params,
-      }
-    );
-    const accessData = await response.json();
+    const accessData = await graphAccessData();
     let rfqData = await getRFQData(
       process.env.graph_site_id_sales,
       process.env.graph_list_id_rfq,
@@ -190,7 +175,7 @@ app.post("/graph", async (req, res) => {
       });
     });
     currentHistory.forEach((rfq) => {
-      console.log(rfq, "\n");
+      // console.log(rfq, "\n");
       const calculatedHash = crypto
         .createHmac("sha256", graphClientSecret)
         .update(JSON.stringify(rfq))
