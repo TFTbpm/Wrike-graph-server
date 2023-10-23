@@ -72,7 +72,9 @@ async function createTask(
     // console.log(response);
 
     if (!response.ok) {
-      throw new Error(`Request failed with status ${response.status}`);
+      throw new Error(
+        `Request failed with status ${response.status}, ${response.statusText}.`
+      );
     }
 
     const data = await response.json();

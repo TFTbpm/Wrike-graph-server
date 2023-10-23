@@ -155,7 +155,6 @@ app.post("/graph", async (req, res) => {
       process.env.graph_list_id_rfq,
       accessData.access_token
     );
-    // console.log(rfqData);
     // TODO: get assignee
     rfqData.value.forEach((element) => {
       currentHistory.push({
@@ -194,64 +193,65 @@ app.post("/graph", async (req, res) => {
 
         // TODO: Move most of these to custom fields
 
-        const descriptionStr = `Title: ${rfq.title} \n
-        Link to SharePoint: ${rfq.url} \n
-        Customer Name: ${rfq.customerName} \n
-        Account Type: ${rfq.accountType} \n
-        Contact Email: ${rfq.contactEmail} \n
-        Contact Name: ${rfq.contactName} \n
-        Requested Date (Customer): ${rfq.customerRequestedDate} \n
-        Due Date: ${rfq.internalDueDate} \n
-        # Line Items: ${rfq.numberOfLineItems} \n
-        Priority: ${rfq.priority} \n
+        const descriptionStr = `Title: (RFQ) ${rfq.title} <br>
+        Link to SharePoint: ${rfq.url} <br>
+        Customer Name: ${rfq.customerName} <br>
+        Account Type: ${rfq.accountType} <br>
+        Contact Email: ${rfq.contactEmail} <br>
+        Contact Name: ${rfq.contactName} <br>
+        Requested Date (Customer): ${rfq.customerRequestedDate} <br>
+        Due Date: ${rfq.internalDueDate} <br>
+        # Line Items: ${rfq.numberOfLineItems} <br>
+        Priority: ${rfq.priority} <br>
         ID: ${rfq.id}
         `;
         customStatusID =
-          rfqCustomStatuses.filter((s) => s.name == rfq.status)[0].id || null;
+          rfqCustomStatuses.filter((s) => s.name == rfq.status)[0].id ||
+          "IEAF5SOTJMEAFYJS";
 
         if (wrikeTitles.filter((r) => r.title == rfq.title).length < 1) {
-          // createTask(
-          //   rfq.title,
-          //   process.env.wrike_folder_rfq,
-          //   process.env.wrike_perm_access_token,
-          //   descriptionStr,
-          //   "Active",
-          //   null,
-          //   {
-          //     due: rfq.internalDueDate.slice(0, rfq.internalDueDate.length - 2),
-          //   },
-          //   null,
-          //   null,
-          //   null,
-          //   null,
-          //   null,
-          //   customStatusID,
-          //   null
-          // ).then((data) => {
-          //   wrikeTitles.push({ title: rfq.title, id: data.data[0].id });
-          // });
+          createTask(
+            `(RFQ) ${rfq.title}`,
+            process.env.wrike_folder_rfq,
+            process.env.wrike_perm_access_token,
+            descriptionStr,
+            null,
+            null,
+            {
+              due: rfq.internalDueDate.slice(0, rfq.internalDueDate.length - 2),
+            },
+            null,
+            null,
+            null,
+            null,
+            null,
+            customStatusID,
+            null
+          ).then((data) => {
+            wrikeTitles.push({ title: rfq.title, id: data.data[0].id });
+          });
           console.log("is new", rfq);
 
           // MODIFY RFQ --------------------------------------
         } else {
           // modify task
           const taskID = wrikeTitles.filter((t) => t.title === rfq.title)[0].id;
-          // modifyTask(
-          //   taskID,
-          //   process.env.wrike_folder_rfq,
-          //   process.env.wrike_perm_access_token,
-          //   descriptionStr,
-          //   null,
-          //   null,
-          //   null,
-          //   null,
-          //   null,
-          //   null,
-          //   null,
-          //   null,
-          //   customStatusID,
-          //   null
-          // );
+          modifyTask(
+            taskID,
+            process.env.wrike_folder_rfq,
+            process.env.wrike_perm_access_token,
+            descriptionStr,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            customStatusID,
+            null
+          );
           console.log("not new, but modified", rfq);
         }
       }
