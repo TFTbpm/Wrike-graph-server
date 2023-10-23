@@ -47,6 +47,12 @@ const rfqCustomStatuses = [
   },
 ];
 
+const graphPriorityToWrikeImportance = {
+  High: "High",
+  Medium: "Normal",
+  Low: "Low",
+};
+
 // This will prevent DDoS
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -155,7 +161,7 @@ app.post("/graph", async (req, res) => {
       process.env.graph_list_id_rfq,
       accessData.access_token
     );
-    // TODO: get assignee
+    // TODO: get assignee, get custom statuses, get customers (CF)
     rfqData.value.forEach((element) => {
       currentHistory.push({
         title: element.fields.Title,
@@ -171,9 +177,13 @@ app.post("/graph", async (req, res) => {
           element.fields.Customer_x0020_Requested_x0020_Date,
         numberOfLineItems:
           element.fields.Number_x0020_of_x0020_Line_x0020_Items,
-        priority: element.fields.Priority,
+        priority:
+          graphPriorityToWrikeImportance[element.fields.Priority] ||
+          graphPriorityToWrikeImportance.Medium,
         quoteSource: element.fields.Quote_x0020_Source,
-        status: element.fields.Status,
+        status:
+          rfqCustomStatuses.filter((s) => s.name == element.fields.Status)[0]
+            .id || "IEAF5SOTJMEAFYJS",
         submissionMethod: element.fields.Submission_x0020_Method,
         modified: element.fields.Modified,
         id: element.id,
@@ -185,7 +195,7 @@ app.post("/graph", async (req, res) => {
         .createHmac("sha256", graphClientSecret)
         .update(JSON.stringify(rfq))
         .digest("hex");
-      // TODO: add in a function which removes anything over 10 entries
+      // TODO: add in a function which removes anything over 100 entries
 
       // CREATE RFQ ---------------------------
       if (!graphHistory.includes(calculatedHash)) {
@@ -205,9 +215,6 @@ app.post("/graph", async (req, res) => {
         Priority: ${rfq.priority} <br>
         ID: ${rfq.id}
         `;
-        customStatusID =
-          rfqCustomStatuses.filter((s) => s.name == rfq.status)[0].id ||
-          "IEAF5SOTJMEAFYJS";
 
         if (wrikeTitles.filter((r) => r.title == rfq.title).length < 1) {
           createTask(
@@ -218,14 +225,16 @@ app.post("/graph", async (req, res) => {
             null,
             null,
             {
-              due: rfq.internalDueDate.slice(0, rfq.internalDueDate.length - 2),
+              due:
+                rfq.internalDueDate.slice(0, rfq.internalDueDate.length - 2) ||
+                null,
             },
             null,
             null,
             null,
             null,
             null,
-            customStatusID,
+            rfq.status,
             null
           ).then((data) => {
             wrikeTitles.push({ title: rfq.title, id: data.data[0].id });
@@ -249,7 +258,7 @@ app.post("/graph", async (req, res) => {
             null,
             null,
             null,
-            customStatusID,
+            rfq.status,
             null
           );
           console.log("not new, but modified", rfq);
