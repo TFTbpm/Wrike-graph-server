@@ -148,7 +148,7 @@ app.post("/graph", async (req, res) => {
       process.env.graph_list_id_rfq,
       accessData.access_token
     );
-    console.log("\n test \n", rfqData.value, "\n");
+    // console.log("\n test \n", rfqData.value, "\n");
     // TODO: get custom statuses, get customers (CF), add reveiwer to custom field reviewer
     rfqData.value.forEach((element) => {
       currentHistory.push({
@@ -232,7 +232,7 @@ app.post("/graph", async (req, res) => {
           ).then((data) => {
             wrikeTitles.push({ title: rfq.title, id: data.data[0].id });
           });
-          console.log("is new", rfq);
+          console.log("is new");
 
           // MODIFY RFQ --------------------------------------
         } else {
@@ -258,7 +258,7 @@ app.post("/graph", async (req, res) => {
             rfq.status,
             null
           );
-          console.log("not new, but modified", rfq);
+          console.log("not new, but modified");
         }
       }
     });
