@@ -36,7 +36,7 @@ async function createTask(
       dates: dates || null, // obj
       shareds: shareds || null, //array
       parents: parents || null, // array
-      responsibles: responsibles || null, // array
+      responsibles: responsibles.length > 0 ? responsibles : null, // array
       metadata: metadata || null, // array
       customFields: customFields || null, // array
       customStatus: customStatus || null,

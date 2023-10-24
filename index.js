@@ -54,6 +54,8 @@ const graphPriorityToWrikeImportance = {
   Low: "Low",
 };
 
+const graphIDToWrikeID = { 12: "KUAQZDX2", 189: "KUARCPVF", 832: "KUAQ3CVX" };
+
 // This will prevent DDoS
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -146,6 +148,7 @@ app.post("/graph", async (req, res) => {
       process.env.graph_list_id_rfq,
       accessData.access_token
     );
+    // console.log("\n test \n", rfqData.value, "\n");
     // TODO: get assignee, get custom statuses, get customers (CF)
     rfqData.value.forEach((element) => {
       currentHistory.push({
@@ -172,6 +175,8 @@ app.post("/graph", async (req, res) => {
         submissionMethod: element.fields.Submission_x0020_Method,
         modified: element.fields.Modified,
         id: element.id,
+        assinged: graphIDToWrikeID[element.fields.AssignedLookupId] || null,
+        reviewer: graphIDToWrikeID[element.fields.ReviewerLookupId] || null,
       });
     });
     currentHistory.forEach((rfq) => {
@@ -216,7 +221,10 @@ app.post("/graph", async (req, res) => {
             },
             null,
             null,
-            null,
+            [
+              ...(rfq.assinged == null ? [] : [rfq.assinged]),
+              ...(rfq.reviewer == null ? [] : [rfq.reviewer]),
+            ],
             null,
             null,
             rfq.status,
@@ -237,10 +245,14 @@ app.post("/graph", async (req, res) => {
             descriptionStr,
             null,
             null,
+            {
+              due:
+                rfq.internalDueDate.slice(0, rfq.internalDueDate.length - 2) ||
+                null,
+            },
             null,
             null,
-            null,
-            null,
+            [rfq.assinged, rfq.reviewer],
             null,
             null,
             rfq.status,

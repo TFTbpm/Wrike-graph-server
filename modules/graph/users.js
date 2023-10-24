@@ -47,3 +47,5 @@ function conversion(arr) {
   });
   return retArr;
 }
+
+module.exports = getUserIDs;
