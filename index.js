@@ -214,11 +214,14 @@ app.post("/graph", async (req, res) => {
             descriptionStr,
             null,
             null,
-            {
-              due:
-                rfq.internalDueDate.slice(0, rfq.internalDueDate.length - 2) ||
-                null,
-            },
+            rfq.internalDueDate
+              ? {
+                  due: rfq.internalDueDate.slice(
+                    0,
+                    rfq.internalDueDate.length - 2
+                  ),
+                }
+              : null,
             null,
             null,
             [
@@ -245,11 +248,14 @@ app.post("/graph", async (req, res) => {
             descriptionStr,
             null,
             null,
-            {
-              due:
-                rfq.internalDueDate.slice(0, rfq.internalDueDate.length - 2) ||
-                null,
-            },
+            rfq.internalDueDate
+              ? {
+                  due: rfq.internalDueDate.slice(
+                    0,
+                    rfq.internalDueDate.length - 2
+                  ),
+                }
+              : null,
             null,
             null,
             [rfq.assinged, rfq.reviewer],
