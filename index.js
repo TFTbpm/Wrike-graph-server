@@ -148,8 +148,8 @@ app.post("/graph", async (req, res) => {
       process.env.graph_list_id_rfq,
       accessData.access_token
     );
-    // console.log("\n test \n", rfqData.value, "\n");
-    // TODO: get assignee, get custom statuses, get customers (CF)
+    console.log("\n test \n", rfqData.value, "\n");
+    // TODO: get custom statuses, get customers (CF), add reveiwer to custom field reviewer
     rfqData.value.forEach((element) => {
       currentHistory.push({
         title: element.fields.Title,

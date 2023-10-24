@@ -73,7 +73,7 @@ async function createTask(
 
     if (!response.ok) {
       throw new Error(
-        `Request failed with status ${response.status}, ${response.statusText}.`
+        `Request failed with status ${response.status}, ${response.statusText}. \n URL: ${URL}`
       );
     }
 
