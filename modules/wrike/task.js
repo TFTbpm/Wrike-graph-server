@@ -62,6 +62,7 @@ async function createTask(
     const URL = `https://www.wrike.com/api/v4/folders/${folderId}/tasks?${queryString}`;
     // console.log(URL);
 
+    // ! Getting type error here
     const response = await fetch(URL, {
       method: "POST",
       headers: {
@@ -105,6 +106,13 @@ async function modifyTask(
     if (taskId === undefined || folderId === undefined) {
       return;
     }
+    const stringArr = [
+      "title",
+      "description",
+      "status",
+      "importance",
+      "customStatus",
+    ];
     const params = {
       description: description || null,
       status: status || null,
@@ -112,7 +120,7 @@ async function modifyTask(
       dates: dates || null,
       shareds: shareds || null,
       parents: parents || null,
-      responsibles: responsibles || null,
+      addResponsibles: responsibles || null,
       metadata: metadata || null,
       customFields: customFields || null,
       customStatus: customStatus || null,
@@ -135,6 +143,7 @@ async function modifyTask(
     const queryString = queryParams.join("&");
 
     const URL = `https://www.wrike.com/api/v4/tasks/${taskId}?${queryString}`;
+    console.log(URL);
     const response = await fetch(URL, {
       method: "PUT",
       headers: {

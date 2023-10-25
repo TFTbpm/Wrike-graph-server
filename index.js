@@ -206,7 +206,14 @@ app.post("/graph", async (req, res) => {
         ID: ${rfq.id}
         `;
 
-        if (wrikeTitles.filter((r) => r.title == rfq.title).length < 1) {
+        // The wrike titles filter isn't working (making duplicates) (fixed?)
+        // ! Getting type error (maybe related) on fetch request in create task
+
+        const existingTitleIndex = wrikeTitles.findIndex(
+          (item) => item.title === rfq.title
+        );
+
+        if (existingTitleIndex === -1) {
           createTask(
             `(RFQ) ${rfq.title}`,
             process.env.wrike_folder_rfq,
@@ -234,14 +241,15 @@ app.post("/graph", async (req, res) => {
             null
           ).then((data) => {
             wrikeTitles.push({ title: rfq.title, id: data.data[0].id });
-            console.log(wrikeTitles);
           });
+          // console.log(wrikeTitles);
           console.log("is new");
 
           // MODIFY RFQ --------------------------------------
         } else {
           // modify task
-          const taskID = wrikeTitles.filter((t) => t.title === rfq.title)[0].id;
+          const taskID = wrikeTitles[existingTitleIndex].id;
+          // console.log(taskID);
           modifyTask(
             taskID,
             process.env.wrike_folder_rfq,
@@ -259,7 +267,10 @@ app.post("/graph", async (req, res) => {
               : null,
             null,
             null,
-            [rfq.assinged, rfq.reviewer],
+            [
+              ...(rfq.assinged == null ? [] : [rfq.assinged]),
+              ...(rfq.reviewer == null ? [] : [rfq.reviewer]),
+            ],
             null,
             null,
             rfq.status,
@@ -271,6 +282,7 @@ app.post("/graph", async (req, res) => {
     });
     res.status(200).send("good");
   }
+  console.log(wrikeTitles);
 });
 
 app.use("*", (req, res) => {
