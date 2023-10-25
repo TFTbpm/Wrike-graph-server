@@ -234,6 +234,7 @@ app.post("/graph", async (req, res) => {
             null
           ).then((data) => {
             wrikeTitles.push({ title: rfq.title, id: data.data[0].id });
+            console.log(wrikeTitles);
           });
           console.log("is new");
 
