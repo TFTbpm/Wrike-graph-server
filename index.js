@@ -6,7 +6,15 @@ const { createTask, modifyTask } = require("./modules/wrike/task");
 const graphAccessData = require("./modules/graph/accessToken");
 const rateLimit = require("express-rate-limit");
 const getRFQData = require("./modules/graph/rfq");
+const { MongoClient } = require("mongodb");
+
+// dotenv config
 config();
+
+// mongodb client
+const client = new MongoClient(process.env.mongoURL);
+const db = client.db(process.env.mongoDB);
+const wrikeTitles = db.collection(process.env.mongoCollection);
 
 // This is hashed to verify the source
 let rawRequestBody = "";
@@ -14,7 +22,6 @@ let rawRequestBody = "";
 let wrikeHistory = [];
 let graphHistory = [1, 2, 3, 4, 5];
 // TODO: add in a handler for when marked for compelted to remove from this array
-let wrikeTitles = [];
 
 // TODO: make a method to update these
 const rfqCustomStatuses = [
@@ -179,13 +186,11 @@ app.post("/graph", async (req, res) => {
         reviewer: graphIDToWrikeID[element.fields.ReviewerLookupId] || null,
       });
     });
-    currentHistory.forEach((rfq) => {
-      // console.log(rfq, "\n");
+    currentHistory.forEach(async (rfq) => {
       const calculatedHash = crypto
         .createHmac("sha256", graphClientSecret)
         .update(JSON.stringify(rfq))
         .digest("hex");
-      // TODO: add in a function which removes anything over 100 entries
 
       // CREATE RFQ ---------------------------
       if (!graphHistory.includes(calculatedHash)) {
@@ -209,11 +214,14 @@ app.post("/graph", async (req, res) => {
         // The wrike titles filter isn't working (making duplicates) (fixed?)
         // ! Getting type error (maybe related) on fetch request in create task
 
-        const existingTitleIndex = wrikeTitles.findIndex(
-          (item) => item.title === rfq.title
-        );
+        // const existingTitleIndex = wrikeTitles.findIndex(
+        //   (item) => item.title === rfq.title
+        // );
+        // console.log(rfq.title);
+        const title = await wrikeTitles.findOne({ title: rfq.title });
+        // console.log(title);
 
-        if (existingTitleIndex === -1) {
+        if (title === null) {
           createTask(
             `(RFQ) ${rfq.title}`,
             process.env.wrike_folder_rfq,
@@ -240,7 +248,7 @@ app.post("/graph", async (req, res) => {
             rfq.status,
             null
           ).then((data) => {
-            wrikeTitles.push({ title: rfq.title, id: data.data[0].id });
+            wrikeTitles.insertOne({ title: rfq.title, id: data.data[0].id });
           });
           // console.log(wrikeTitles);
           console.log("is new");
@@ -248,7 +256,7 @@ app.post("/graph", async (req, res) => {
           // MODIFY RFQ --------------------------------------
         } else {
           // modify task
-          const taskID = wrikeTitles[existingTitleIndex].id;
+          const taskID = title.id;
           // console.log(taskID);
           modifyTask(
             taskID,
@@ -282,7 +290,6 @@ app.post("/graph", async (req, res) => {
     });
     res.status(200).send("good");
   }
-  console.log(wrikeTitles);
 });
 
 app.use("*", (req, res) => {
