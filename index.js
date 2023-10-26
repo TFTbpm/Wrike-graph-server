@@ -12,8 +12,9 @@ const { MongoClient } = require("mongodb");
 config();
 // mongodb client intialization
 let wrikeTitles;
+let client;
 try {
-  const client = new MongoClient(process.env.mongoURL);
+  client = new MongoClient(process.env.mongoURL);
   const db = client.db(process.env.mongoDB);
   wrikeTitles = db.collection(process.env.mongoCollection);
 } catch (e) {
@@ -186,7 +187,6 @@ app.post("/graph", async (req, res) => {
   // TODO: get custom statuses, get customers (CF), add reveiwer to custom field reviewer
   // Puts all the elements in an easy to read format
   rfqData.value.forEach((element) => {
-    console.log(element);
     currentHistory.push({
       title: element.fields.Title,
       url: element.fields._dlc_DocIdUrl.Url,
@@ -198,7 +198,7 @@ app.post("/graph", async (req, res) => {
       internalDueDate:
         element.fields.Internal_x0020_Due_x0020_Date ||
         element.fields.Customer_x0020_Requested_x0020_Date,
-      startDate: createdDateTime,
+      startDate: element.createdDateTime,
       numberOfLineItems: element.fields.Number_x0020_of_x0020_Line_x0020_Items,
       priority:
         graphPriorityToWrikeImportance[element.fields.Priority] ||
@@ -255,7 +255,7 @@ app.post("/graph", async (req, res) => {
         null,
         rfq.internalDueDate
           ? {
-              start: rfq.startDate,
+              start: rfq.startDate.slice(0, rfq.startDate.length - 2),
               due: rfq.internalDueDate.slice(0, rfq.internalDueDate.length - 2),
             }
           : null,
@@ -274,8 +274,6 @@ app.post("/graph", async (req, res) => {
           wrikeTitles.insertOne({ title: rfq.title, id: data.data[0].id });
         } catch (e) {
           console.log(`error with mongodb: ${e}`);
-        } finally {
-          wrikeTitles.close();
         }
       });
       console.log("is new");
@@ -293,7 +291,7 @@ app.post("/graph", async (req, res) => {
         null,
         rfq.internalDueDate
           ? {
-              start: rfq.startDate,
+              start: rfq.startDate.slice(0, rfq.startDate.length - 2),
               due: rfq.internalDueDate.slice(0, rfq.internalDueDate.length - 2),
             }
           : null,

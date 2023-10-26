@@ -62,7 +62,6 @@ async function createTask(
     const URL = `https://www.wrike.com/api/v4/folders/${folderId}/tasks?${queryString}`;
     // console.log(`URL: ${URL} \n tokentype:${typeof access_token}`);
 
-    // ! Getting type error here
     const response = await fetch(URL, {
       method: "POST",
       headers: {
