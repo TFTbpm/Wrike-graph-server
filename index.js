@@ -10,11 +10,15 @@ const { MongoClient } = require("mongodb");
 
 // dotenv config
 config();
-
 // mongodb client intialization
-const client = new MongoClient(process.env.mongoURL);
-const db = client.db(process.env.mongoDB);
-const wrikeTitles = db.collection(process.env.mongoCollection);
+let wrikeTitles;
+try {
+  const client = new MongoClient(process.env.mongoURL);
+  const db = client.db(process.env.mongoDB);
+  wrikeTitles = db.collection(process.env.mongoCollection);
+} catch (e) {
+  console.log(`error connecting to mongodb: ${e}`);
+}
 
 // This is hashed to verify the source
 let rawRequestBody = "";
@@ -261,7 +265,13 @@ app.post("/graph", async (req, res) => {
         rfq.status,
         null
       ).then((data) => {
-        wrikeTitles.insertOne({ title: rfq.title, id: data.data[0].id });
+        try {
+          wrikeTitles.insertOne({ title: rfq.title, id: data.data[0].id });
+        } catch (e) {
+          console.log(`error with mongodb: ${e}`);
+        } finally {
+          wrikeTitles.close();
+        }
       });
       console.log("is new");
 
