@@ -67,6 +67,12 @@ const graphPriorityToWrikeImportance = {
 };
 const graphIDToWrikeID = { 12: "KUAQZDX2", 189: "KUARCPVF", 832: "KUAQ3CVX" };
 
+const wrikeCustomFields = {
+  Customer: "IEAF5SOTJUAE3Q3P",
+  Reviewer: "IEAF5SOTJUAE4XCY",
+  Impact: "IEAF5SOTJUAEUZME",
+};
+
 // This will prevent DDoS
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -261,12 +267,11 @@ app.post("/graph", async (req, res) => {
           : null,
         null,
         null,
-        [
-          ...(rfq.assinged == null ? [] : [rfq.assinged]),
-          ...(rfq.reviewer == null ? [] : [rfq.reviewer]),
-        ],
+        [...(rfq.assinged == null ? [] : [rfq.assinged])],
         null,
-        null,
+        rfq.reviewer
+          ? [{ id: wrikeCustomFields.Reviewer, value: rfq.reviewer }]
+          : null,
         rfq.status,
         null
       ).then((data) => {
@@ -297,14 +302,14 @@ app.post("/graph", async (req, res) => {
           : null,
         null,
         null,
-        [
-          ...(rfq.assinged == null ? [] : [rfq.assinged]),
-          ...(rfq.reviewer == null ? [] : [rfq.reviewer]),
-        ],
+        [...(rfq.assinged == null ? [] : [rfq.assinged])],
         null,
-        null,
+        rfq.reviewer
+          ? [{ id: wrikeCustomFields.Reviewer, value: rfq.reviewer }]
+          : null,
         rfq.status,
-        null
+        null,
+        [...(rfq.assinged == null ? Object.values(graphIDToWrikeID) : [])]
       );
       console.log("not new, but modified");
     }

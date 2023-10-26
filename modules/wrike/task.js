@@ -14,6 +14,7 @@ async function createTask(
   customStatus,
   fields
 ) {
+  let URI;
   try {
     if (title === undefined || folderId === undefined) {
       return;
@@ -59,7 +60,7 @@ async function createTask(
 
     const queryString = queryParams.join("&");
 
-    const URL = `https://www.wrike.com/api/v4/folders/${folderId}/tasks?${queryString}`;
+    const URI = `https://www.wrike.com/api/v4/folders/${folderId}/tasks?${queryString}`;
     // console.log(`URL: ${URL} \n tokentype:${typeof access_token}`);
 
     const response = await fetch(URL, {
@@ -73,7 +74,7 @@ async function createTask(
 
     if (!response.ok) {
       throw new Error(
-        `Request failed with status ${response.status}, ${response.statusText}. \n URL: ${URL}`
+        `Request failed with status ${response.status}, ${response.statusText}. \n URL: ${URI}`
       );
     }
 
@@ -95,12 +96,14 @@ async function modifyTask(
   dates,
   shareds,
   parents,
-  responsibles,
+  addResponsibles,
   metadata,
   customFields,
   customStatus,
-  fields
+  fields,
+  removeResponsibles
 ) {
+  let URI;
   try {
     if (taskId === undefined || folderId === undefined) {
       return;
@@ -119,11 +122,12 @@ async function modifyTask(
       dates: dates || null,
       shareds: shareds || null,
       parents: parents || null,
-      addResponsibles: responsibles || null,
+      addResponsibles: addResponsibles || null,
       metadata: metadata || null,
       customFields: customFields || null,
       customStatus: customStatus || null,
       fields: fields || null,
+      removeResponsibles: removeResponsibles || null,
     };
     const queryParams = [];
 
@@ -141,9 +145,9 @@ async function modifyTask(
 
     const queryString = queryParams.join("&");
 
-    const URL = `https://www.wrike.com/api/v4/tasks/${taskId}?${queryString}`;
+    URI = `https://www.wrike.com/api/v4/tasks/${taskId}?${queryString}`;
     // console.log(URL);
-    const response = await fetch(URL, {
+    const response = await fetch(URI, {
       method: "PUT",
       headers: {
         Authorization: `Bearer ${access_token}`,
@@ -155,7 +159,9 @@ async function modifyTask(
     const data = await response.json();
     return await data;
   } catch (error) {
-    console.error(`An error occured while modifying a task: ${error}`);
+    console.error(
+      `An error occured while modifying a task: ${error} \n URL: ${URI}`
+    );
     throw error;
   }
 }
