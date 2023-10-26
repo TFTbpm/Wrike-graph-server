@@ -143,7 +143,7 @@ async function modifyTask(
     const queryString = queryParams.join("&");
 
     const URL = `https://www.wrike.com/api/v4/tasks/${taskId}?${queryString}`;
-    console.log(URL);
+    // console.log(URL);
     const response = await fetch(URL, {
       method: "PUT",
       headers: {

@@ -186,6 +186,7 @@ app.post("/graph", async (req, res) => {
   // TODO: get custom statuses, get customers (CF), add reveiwer to custom field reviewer
   // Puts all the elements in an easy to read format
   rfqData.value.forEach((element) => {
+    console.log(element);
     currentHistory.push({
       title: element.fields.Title,
       url: element.fields._dlc_DocIdUrl.Url,
@@ -197,6 +198,7 @@ app.post("/graph", async (req, res) => {
       internalDueDate:
         element.fields.Internal_x0020_Due_x0020_Date ||
         element.fields.Customer_x0020_Requested_x0020_Date,
+      startDate: createdDateTime,
       numberOfLineItems: element.fields.Number_x0020_of_x0020_Line_x0020_Items,
       priority:
         graphPriorityToWrikeImportance[element.fields.Priority] ||
@@ -253,6 +255,7 @@ app.post("/graph", async (req, res) => {
         null,
         rfq.internalDueDate
           ? {
+              start: rfq.startDate,
               due: rfq.internalDueDate.slice(0, rfq.internalDueDate.length - 2),
             }
           : null,
@@ -290,6 +293,7 @@ app.post("/graph", async (req, res) => {
         null,
         rfq.internalDueDate
           ? {
+              start: rfq.startDate,
               due: rfq.internalDueDate.slice(0, rfq.internalDueDate.length - 2),
             }
           : null,
