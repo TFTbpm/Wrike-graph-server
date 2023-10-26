@@ -170,7 +170,7 @@ app.post("/graph", async (req, res) => {
 
   if (req.body.clientState !== process.env.graph_subscription_secret) {
     res.status(400).send();
-    console.log(`client state didnt match: ${req.body}`);
+    console.log(`client state didnt match: ${JSON.stringify(req.body)}`);
     return;
   }
 
