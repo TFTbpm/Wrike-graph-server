@@ -1,3 +1,13 @@
+const { MongoClient } = require("mongodb");
+
+const wrikeCustomFields = {
+  Customer: "IEAF5SOTJUAFB2KU",
+  Reviewer: "IEAF5SOTJUAE4XCY",
+  Impact: "IEAF5SOTJUAEUZME",
+};
+
+const graphIDToWrikeID = { 12: "KUAQZDX2", 189: "KUARCPVF", 832: "KUAQ3CVX" };
+
 async function createTask(
   title,
   folderId,
@@ -214,4 +224,130 @@ async function getTasks(taskId, access_token) {
   }
 }
 
-module.exports = { createTask, modifyTask, deleteTask, getTasks };
+async function processRFQ(rfq) {
+  client = new MongoClient(process.env.mongoURL);
+  const db = client.db(process.env.mongoDB);
+  const wrikeTitles = db.collection(process.env.mongoCollection);
+
+  // TODO: Move most of these to custom fields
+
+  const descriptionStr = `Title: (RFQ) ${rfq.title} <br>
+    Link to SharePoint: ${rfq.url} <br>
+    Customer Name: ${rfq.customerName} <br>
+    Account Type: ${rfq.accountType} <br>
+    Contact Email: ${rfq.contactEmail} <br>
+    Contact Name: ${rfq.contactName} <br>
+    Requested Date (Customer): ${rfq.customerRequestedDate} <br>
+    Due Date: ${rfq.internalDueDate} <br>
+    # Line Items: ${rfq.numberOfLineItems} <br>
+    Priority: ${rfq.priority} <br>
+    ID: ${rfq.id}
+    `;
+
+  const title = await wrikeTitles.findOne({ title: rfq.title });
+
+  // if this title hasn't been put into the system yet:
+  if (title === null) {
+    try {
+      createTask(
+        `(RFQ) ${rfq.title}`,
+        process.env.wrike_folder_rfq,
+        process.env.wrike_perm_access_token,
+        descriptionStr,
+        null,
+        rfq.priority,
+        rfq.internalDueDate
+          ? {
+              start: rfq.startDate.slice(0, rfq.startDate.length - 2),
+              due: rfq.internalDueDate.slice(0, rfq.internalDueDate.length - 2),
+            }
+          : null,
+        null,
+        null,
+        [...(rfq.assinged == null ? [] : [rfq.assinged])],
+        null,
+        rfq.reviewer && rfq.customerName
+          ? [
+              {
+                id: wrikeCustomFields.Customer,
+                value: rfq.customerName.toUpperCase(),
+              },
+              { id: wrikeCustomFields.Reviewer, value: rfq.reviewer },
+            ]
+          : rfq.reviewer
+          ? [{ id: wrikeCustomFields.Reviewer, value: rfq.reviewer }]
+          : rfq.customerName
+          ? [
+              {
+                id: wrikeCustomFields.Customer,
+                value: rfq.customerName.toUpperCase(),
+              },
+            ]
+          : null,
+        rfq.status,
+        null
+      ).then((data) => {
+        try {
+          wrikeTitles.insertOne({ title: rfq.title, id: data.data[0].id });
+        } catch (e) {
+          console.log(`error with mongodb: ${e}`);
+        }
+      });
+      console.log("is new");
+    } catch (e) {
+      console.log(`error creating rfq: ${e}`);
+    }
+
+    // MODIFY RFQ --------------------------------------
+  } else {
+    // if it exists in the system, modify the task
+    const taskID = title.id;
+    try {
+      modifyTask(
+        taskID,
+        process.env.wrike_folder_rfq,
+
+        process.env.wrike_perm_access_token,
+        descriptionStr,
+        null,
+        rfq.priority,
+        rfq.internalDueDate
+          ? {
+              start: rfq.startDate.slice(0, rfq.startDate.length - 2),
+              due: rfq.internalDueDate.slice(0, rfq.internalDueDate.length - 2),
+            }
+          : null,
+        null,
+        null,
+        [...(rfq.assinged == null ? [] : [rfq.assinged])],
+        null,
+        rfq.reviewer && rfq.customerName
+          ? [
+              {
+                id: wrikeCustomFields.Customer,
+                value: rfq.customerName.toUpperCase(),
+              },
+              { id: wrikeCustomFields.Reviewer, value: rfq.reviewer },
+            ]
+          : rfq.reviewer
+          ? [{ id: wrikeCustomFields.Reviewer, value: rfq.reviewer }]
+          : rfq.customerName
+          ? [
+              {
+                id: wrikeCustomFields.Customer,
+                value: rfq.customerName.toUpperCase(),
+              },
+            ]
+          : null,
+        rfq.status,
+        null,
+        [...(rfq.assinged == null ? Object.values(graphIDToWrikeID) : [])]
+      );
+      console.log("not new, but modified");
+    } catch (e) {
+      console.log(`error updating rfq: ${e}`);
+    }
+  }
+}
+
+module.exports = { createTask, modifyTask, deleteTask, getTasks, processRFQ };

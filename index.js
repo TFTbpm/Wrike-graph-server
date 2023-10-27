@@ -2,11 +2,11 @@ const express = require("express");
 const { validationResult, header } = require("express-validator");
 const { config } = require("dotenv");
 const crypto = require("node:crypto");
-const { createTask, modifyTask } = require("./modules/wrike/task");
+const { processRFQ } = require("./modules/wrike/task");
 const graphAccessData = require("./modules/graph/accessToken");
 const rateLimit = require("express-rate-limit");
 const getRFQData = require("./modules/graph/rfq");
-const { MongoClient } = require("mongodb");
+
 const refreshCustomerList = require("./modules/wrike/refreshFields");
 
 // dotenv config
@@ -17,7 +17,6 @@ let client;
 let rawRequestBody = "";
 // This is used to verify we haven't already sent that info (low latency check)
 let wrikeHistory = [];
-let graphHistory = [1, 2, 3, 4, 5];
 // TODO: add in a handler for when marked for completed to remove from this array
 
 // TODO: make a function/module to update these
@@ -58,12 +57,6 @@ const graphPriorityToWrikeImportance = {
   Low: "Low",
 };
 const graphIDToWrikeID = { 12: "KUAQZDX2", 189: "KUARCPVF", 832: "KUAQ3CVX" };
-
-const wrikeCustomFields = {
-  Customer: "IEAF5SOTJUAFB2KU",
-  Reviewer: "IEAF5SOTJUAE4XCY",
-  Impact: "IEAF5SOTJUAEUZME",
-};
 
 // This will prevent DDoS
 const limiter = rateLimit({
@@ -220,6 +213,19 @@ app.post("/graph/rfq", async (req, res) => {
   res.status(200).send("good");
 });
 
+app.post("/graph/datasheets", async (req, res) => {
+  if (req.url.includes("validationToken=")) {
+    // have to check for %3A with a regex and replace matches since decodeURI treats them as special char
+    res
+      .contentType("text/plain")
+      .status(200)
+      .send(
+        decodeURI(req.url.replace(/%3A/g, ":").split("validationToken=")[1])
+      );
+    return;
+  }
+});
+
 app.use("*", (req, res) => {
   res.status(400).send("Something went wrong");
 });
@@ -231,129 +237,3 @@ app.listen(5501, () => {
 app.listen();
 
 module.exports = app;
-
-async function processRFQ(rfq) {
-  client = new MongoClient(process.env.mongoURL);
-  const db = client.db(process.env.mongoDB);
-  const wrikeTitles = db.collection(process.env.mongoCollection);
-
-  // TODO: Move most of these to custom fields
-
-  const descriptionStr = `Title: (RFQ) ${rfq.title} <br>
-    Link to SharePoint: ${rfq.url} <br>
-    Customer Name: ${rfq.customerName} <br>
-    Account Type: ${rfq.accountType} <br>
-    Contact Email: ${rfq.contactEmail} <br>
-    Contact Name: ${rfq.contactName} <br>
-    Requested Date (Customer): ${rfq.customerRequestedDate} <br>
-    Due Date: ${rfq.internalDueDate} <br>
-    # Line Items: ${rfq.numberOfLineItems} <br>
-    Priority: ${rfq.priority} <br>
-    ID: ${rfq.id}
-    `;
-
-  const title = await wrikeTitles.findOne({ title: rfq.title });
-
-  // if this title hasn't been put into the system yet:
-  if (title === null) {
-    try {
-      createTask(
-        `(RFQ) ${rfq.title}`,
-        process.env.wrike_folder_rfq,
-        process.env.wrike_perm_access_token,
-        descriptionStr,
-        null,
-        rfq.priority,
-        rfq.internalDueDate
-          ? {
-              start: rfq.startDate.slice(0, rfq.startDate.length - 2),
-              due: rfq.internalDueDate.slice(0, rfq.internalDueDate.length - 2),
-            }
-          : null,
-        null,
-        null,
-        [...(rfq.assinged == null ? [] : [rfq.assinged])],
-        null,
-        rfq.reviewer && rfq.customerName
-          ? [
-              {
-                id: wrikeCustomFields.Customer,
-                value: rfq.customerName.toUpperCase(),
-              },
-              { id: wrikeCustomFields.Reviewer, value: rfq.reviewer },
-            ]
-          : rfq.reviewer
-          ? [{ id: wrikeCustomFields.Reviewer, value: rfq.reviewer }]
-          : rfq.customerName
-          ? [
-              {
-                id: wrikeCustomFields.Customer,
-                value: rfq.customerName.toUpperCase(),
-              },
-            ]
-          : null,
-        rfq.status,
-        null
-      ).then((data) => {
-        try {
-          wrikeTitles.insertOne({ title: rfq.title, id: data.data[0].id });
-        } catch (e) {
-          console.log(`error with mongodb: ${e}`);
-        }
-      });
-      console.log("is new");
-    } catch (e) {
-      console.log(`error creating rfq: ${e}`);
-    }
-
-    // MODIFY RFQ --------------------------------------
-  } else {
-    // if it exists in the system, modify the task
-    const taskID = title.id;
-    try {
-      modifyTask(
-        taskID,
-        process.env.wrike_folder_rfq,
-
-        process.env.wrike_perm_access_token,
-        descriptionStr,
-        null,
-        rfq.priority,
-        rfq.internalDueDate
-          ? {
-              start: rfq.startDate.slice(0, rfq.startDate.length - 2),
-              due: rfq.internalDueDate.slice(0, rfq.internalDueDate.length - 2),
-            }
-          : null,
-        null,
-        null,
-        [...(rfq.assinged == null ? [] : [rfq.assinged])],
-        null,
-        rfq.reviewer && rfq.customerName
-          ? [
-              {
-                id: wrikeCustomFields.Customer,
-                value: rfq.customerName.toUpperCase(),
-              },
-              { id: wrikeCustomFields.Reviewer, value: rfq.reviewer },
-            ]
-          : rfq.reviewer
-          ? [{ id: wrikeCustomFields.Reviewer, value: rfq.reviewer }]
-          : rfq.customerName
-          ? [
-              {
-                id: wrikeCustomFields.Customer,
-                value: rfq.customerName.toUpperCase(),
-              },
-            ]
-          : null,
-        rfq.status,
-        null,
-        [...(rfq.assinged == null ? Object.values(graphIDToWrikeID) : [])]
-      );
-      console.log("not new, but modified");
-    } catch (e) {
-      console.log(`error updating rfq: ${e}`);
-    }
-  }
-}
