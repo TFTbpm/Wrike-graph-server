@@ -11,6 +11,7 @@ const refreshCustomerList = require("./modules/wrike/refreshFields");
 
 // dotenv config
 config();
+let client;
 
 // This is hashed to verify the source
 let rawRequestBody = "";
@@ -151,7 +152,6 @@ app.get("/", (req, res) => {
 });
 
 app.post("/graph/rfq", async (req, res) => {
-  const graphClientSecret = process.env.graph_api_secret;
   let currentHistory = [];
 
   // for initlaizing ms subscription
@@ -212,58 +212,11 @@ app.post("/graph/rfq", async (req, res) => {
     });
   });
 
-  // mongodb client intialization
-  let client;
   try {
-    client = new MongoClient(process.env.mongoURL);
-    const db = client.db(process.env.mongoDB);
-
-    const wrikeTitles = db.collection(process.env.mongoCollection);
-
-    // Create a function to process each RFQ asynchronously
-    const processRFQ = async (rfq) => {
-      const calculatedHash = crypto
-        .createHmac("sha256", graphClientSecret)
-        .update(JSON.stringify(rfq))
-        .digest("hex");
-
-      if (graphHistory.includes(calculatedHash)) {
-        return;
-      }
-      graphHistory.push(calculatedHash);
-
-      const descriptionStr = `...`; // Your description logic here
-
-      const title = await wrikeTitles.findOne({ title: rfq.title });
-
-      if (title === null) {
-        // Create a new task
-        const data = await createTask(/* task creation parameters */);
-        try {
-          await wrikeTitles.insertOne({
-            title: rfq.title,
-            id: data.data[0].id,
-          });
-        } catch (e) {
-          console.log(`error with mongodb: ${e}`);
-        }
-        console.log("is new");
-      } else {
-        // Modify an existing task
-        const taskID = title.id;
-        await modifyTask(/* task modification parameters */);
-        console.log("not new, but modified");
-      }
-    };
-
-    // Use Promise.all to await all RFQ processing
     await Promise.all(currentHistory.map(processRFQ));
   } catch (e) {
-    console.log(`error connecting to mongodb: ${e}`);
-  } finally {
-    client.close();
+    console.log(`error: ${e}`);
   }
-
   res.status(200).send("good");
 });
 
@@ -278,3 +231,129 @@ app.listen(5501, () => {
 app.listen();
 
 module.exports = app;
+
+async function processRFQ(rfq) {
+  client = new MongoClient(process.env.mongoURL);
+  const db = client.db(process.env.mongoDB);
+  const wrikeTitles = db.collection(process.env.mongoCollection);
+
+  // TODO: Move most of these to custom fields
+
+  const descriptionStr = `Title: (RFQ) ${rfq.title} <br>
+    Link to SharePoint: ${rfq.url} <br>
+    Customer Name: ${rfq.customerName} <br>
+    Account Type: ${rfq.accountType} <br>
+    Contact Email: ${rfq.contactEmail} <br>
+    Contact Name: ${rfq.contactName} <br>
+    Requested Date (Customer): ${rfq.customerRequestedDate} <br>
+    Due Date: ${rfq.internalDueDate} <br>
+    # Line Items: ${rfq.numberOfLineItems} <br>
+    Priority: ${rfq.priority} <br>
+    ID: ${rfq.id}
+    `;
+
+  const title = await wrikeTitles.findOne({ title: rfq.title });
+
+  // if this title hasn't been put into the system yet:
+  if (title === null) {
+    try {
+      createTask(
+        `(RFQ) ${rfq.title}`,
+        process.env.wrike_folder_rfq,
+        process.env.wrike_perm_access_token,
+        descriptionStr,
+        null,
+        rfq.priority,
+        rfq.internalDueDate
+          ? {
+              start: rfq.startDate.slice(0, rfq.startDate.length - 2),
+              due: rfq.internalDueDate.slice(0, rfq.internalDueDate.length - 2),
+            }
+          : null,
+        null,
+        null,
+        [...(rfq.assinged == null ? [] : [rfq.assinged])],
+        null,
+        rfq.reviewer && rfq.customerName
+          ? [
+              {
+                id: wrikeCustomFields.Customer,
+                value: rfq.customerName.toUpperCase(),
+              },
+              { id: wrikeCustomFields.Reviewer, value: rfq.reviewer },
+            ]
+          : rfq.reviewer
+          ? [{ id: wrikeCustomFields.Reviewer, value: rfq.reviewer }]
+          : rfq.customerName
+          ? [
+              {
+                id: wrikeCustomFields.Customer,
+                value: rfq.customerName.toUpperCase(),
+              },
+            ]
+          : null,
+        rfq.status,
+        null
+      ).then((data) => {
+        try {
+          wrikeTitles.insertOne({ title: rfq.title, id: data.data[0].id });
+        } catch (e) {
+          console.log(`error with mongodb: ${e}`);
+        }
+      });
+      console.log("is new");
+    } catch (e) {
+      console.log(`error creating rfq: ${e}`);
+    }
+
+    // MODIFY RFQ --------------------------------------
+  } else {
+    // if it exists in the system, modify the task
+    const taskID = title.id;
+    try {
+      modifyTask(
+        taskID,
+        process.env.wrike_folder_rfq,
+
+        process.env.wrike_perm_access_token,
+        descriptionStr,
+        null,
+        rfq.priority,
+        rfq.internalDueDate
+          ? {
+              start: rfq.startDate.slice(0, rfq.startDate.length - 2),
+              due: rfq.internalDueDate.slice(0, rfq.internalDueDate.length - 2),
+            }
+          : null,
+        null,
+        null,
+        [...(rfq.assinged == null ? [] : [rfq.assinged])],
+        null,
+        rfq.reviewer && rfq.customerName
+          ? [
+              {
+                id: wrikeCustomFields.Customer,
+                value: rfq.customerName.toUpperCase(),
+              },
+              { id: wrikeCustomFields.Reviewer, value: rfq.reviewer },
+            ]
+          : rfq.reviewer
+          ? [{ id: wrikeCustomFields.Reviewer, value: rfq.reviewer }]
+          : rfq.customerName
+          ? [
+              {
+                id: wrikeCustomFields.Customer,
+                value: rfq.customerName.toUpperCase(),
+              },
+            ]
+          : null,
+        rfq.status,
+        null,
+        [...(rfq.assinged == null ? Object.values(graphIDToWrikeID) : [])]
+      );
+      console.log("not new, but modified");
+    } catch (e) {
+      console.log(`error updating rfq: ${e}`);
+    }
+  }
+}
