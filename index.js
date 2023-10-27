@@ -150,7 +150,7 @@ app.get("/", (req, res) => {
   res.send("up on /");
 });
 
-app.post("/graph", async (req, res) => {
+app.post("/graph/rfq", async (req, res) => {
   const graphClientSecret = process.env.graph_api_secret;
   let currentHistory = [];
 
