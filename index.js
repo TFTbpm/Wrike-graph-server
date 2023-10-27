@@ -7,19 +7,10 @@ const graphAccessData = require("./modules/graph/accessToken");
 const rateLimit = require("express-rate-limit");
 const getRFQData = require("./modules/graph/rfq");
 const { MongoClient } = require("mongodb");
+const refreshCustomerList = require("./modules/wrike/refreshFields");
 
 // dotenv config
 config();
-// mongodb client intialization
-let wrikeTitles;
-let client;
-try {
-  client = new MongoClient(process.env.mongoURL);
-  const db = client.db(process.env.mongoDB);
-  wrikeTitles = db.collection(process.env.mongoCollection);
-} catch (e) {
-  console.log(`error connecting to mongodb: ${e}`);
-}
 
 // This is hashed to verify the source
 let rawRequestBody = "";
@@ -68,7 +59,7 @@ const graphPriorityToWrikeImportance = {
 const graphIDToWrikeID = { 12: "KUAQZDX2", 189: "KUARCPVF", 832: "KUAQ3CVX" };
 
 const wrikeCustomFields = {
-  Customer: "IEAF5SOTJUAE3Q3P",
+  Customer: "IEAF5SOTJUAFB2KU",
   Reviewer: "IEAF5SOTJUAE4XCY",
   Impact: "IEAF5SOTJUAEUZME",
 };
@@ -221,22 +212,27 @@ app.post("/graph", async (req, res) => {
     });
   });
 
-  currentHistory.forEach(async (rfq) => {
-    const calculatedHash = crypto
-      .createHmac("sha256", graphClientSecret)
-      .update(JSON.stringify(rfq))
-      .digest("hex");
+  // mongodb client intialization
+  try {
+    const client = new MongoClient(process.env.mongoURL);
+    const db = client.db(process.env.mongoDB);
+    const wrikeTitles = db.collection(process.env.mongoCollection);
+    currentHistory.forEach(async (rfq) => {
+      const calculatedHash = crypto
+        .createHmac("sha256", graphClientSecret)
+        .update(JSON.stringify(rfq))
+        .digest("hex");
 
-    // quickly check if exact hash for entire rfq has already been processed
-    // TODO: change this to the mongo db
-    if (graphHistory.includes(calculatedHash)) {
-      return;
-    }
-    graphHistory.push(calculatedHash);
+      // quickly check if exact hash for entire rfq has already been processed
+      // TODO: change this to the mongo db
+      if (graphHistory.includes(calculatedHash)) {
+        return;
+      }
+      graphHistory.push(calculatedHash);
 
-    // TODO: Move most of these to custom fields
+      // TODO: Move most of these to custom fields
 
-    const descriptionStr = `Title: (RFQ) ${rfq.title} <br>
+      const descriptionStr = `Title: (RFQ) ${rfq.title} <br>
         Link to SharePoint: ${rfq.url} <br>
         Customer Name: ${rfq.customerName} <br>
         Account Type: ${rfq.accountType} <br>
@@ -248,72 +244,113 @@ app.post("/graph", async (req, res) => {
         Priority: ${rfq.priority} <br>
         ID: ${rfq.id}
         `;
-    const title = await wrikeTitles.findOne({ title: rfq.title });
 
-    // if this title hasn't been put into the system yet:
-    if (title === null) {
-      createTask(
-        `(RFQ) ${rfq.title}`,
-        process.env.wrike_folder_rfq,
-        process.env.wrike_perm_access_token,
-        descriptionStr,
-        null,
-        null,
-        rfq.internalDueDate
-          ? {
-              start: rfq.startDate.slice(0, rfq.startDate.length - 2),
-              due: rfq.internalDueDate.slice(0, rfq.internalDueDate.length - 2),
-            }
-          : null,
-        null,
-        null,
-        [...(rfq.assinged == null ? [] : [rfq.assinged])],
-        null,
-        rfq.reviewer
-          ? [{ id: wrikeCustomFields.Reviewer, value: rfq.reviewer }]
-          : null,
-        rfq.status,
-        null
-      ).then((data) => {
-        try {
-          wrikeTitles.insertOne({ title: rfq.title, id: data.data[0].id });
-        } catch (e) {
-          console.log(`error with mongodb: ${e}`);
-        }
-      });
-      console.log("is new");
+      const title = await wrikeTitles.findOne({ title: rfq.title });
 
-      // MODIFY RFQ --------------------------------------
-    } else {
-      // if it exists in the system, modify the task
-      const taskID = title.id;
-      modifyTask(
-        taskID,
-        process.env.wrike_folder_rfq,
-        process.env.wrike_perm_access_token,
-        descriptionStr,
-        null,
-        null,
-        rfq.internalDueDate
-          ? {
-              start: rfq.startDate.slice(0, rfq.startDate.length - 2),
-              due: rfq.internalDueDate.slice(0, rfq.internalDueDate.length - 2),
-            }
-          : null,
-        null,
-        null,
-        [...(rfq.assinged == null ? [] : [rfq.assinged])],
-        null,
-        rfq.reviewer
-          ? [{ id: wrikeCustomFields.Reviewer, value: rfq.reviewer }]
-          : null,
-        rfq.status,
-        null,
-        [...(rfq.assinged == null ? Object.values(graphIDToWrikeID) : [])]
-      );
-      console.log("not new, but modified");
-    }
-  });
+      // if this title hasn't been put into the system yet:
+      if (title === null) {
+        createTask(
+          `(RFQ) ${rfq.title}`,
+          process.env.wrike_folder_rfq,
+          process.env.wrike_perm_access_token,
+          descriptionStr,
+          null,
+          rfq.priority,
+          rfq.internalDueDate
+            ? {
+                start: rfq.startDate.slice(0, rfq.startDate.length - 2),
+                due: rfq.internalDueDate.slice(
+                  0,
+                  rfq.internalDueDate.length - 2
+                ),
+              }
+            : null,
+          null,
+          null,
+          [...(rfq.assinged == null ? [] : [rfq.assinged])],
+          null,
+          rfq.reviewer && rfq.customerName
+            ? [
+                {
+                  id: wrikeCustomFields.Customer,
+                  value: rfq.customerName.toUpperCase(),
+                },
+                { id: wrikeCustomFields.Reviewer, value: rfq.reviewer },
+              ]
+            : rfq.reviewer
+            ? [{ id: wrikeCustomFields.Reviewer, value: rfq.reviewer }]
+            : rfq.customerName.toUpperCase()
+            ? [
+                {
+                  id: wrikeCustomFields.Customer,
+                  value: rfq.customerName.toUpperCase(),
+                },
+              ]
+            : null,
+          rfq.status,
+          null
+        ).then((data) => {
+          try {
+            wrikeTitles.insertOne({ title: rfq.title, id: data.data[0].id });
+          } catch (e) {
+            console.log(`error with mongodb: ${e}`);
+          }
+        });
+        console.log("is new");
+
+        // MODIFY RFQ --------------------------------------
+      } else {
+        // if it exists in the system, modify the task
+        const taskID = title.id;
+        modifyTask(
+          taskID,
+          process.env.wrike_folder_rfq,
+          process.env.wrike_perm_access_token,
+          descriptionStr,
+          null,
+          rfq.priority,
+          rfq.internalDueDate
+            ? {
+                start: rfq.startDate.slice(0, rfq.startDate.length - 2),
+                due: rfq.internalDueDate.slice(
+                  0,
+                  rfq.internalDueDate.length - 2
+                ),
+              }
+            : null,
+          null,
+          null,
+          [...(rfq.assinged == null ? [] : [rfq.assinged])],
+          null,
+          rfq.reviewer && rfq.customerName
+            ? [
+                {
+                  id: wrikeCustomFields.Customer,
+                  value: rfq.customerName.toUpperCase(),
+                },
+                { id: wrikeCustomFields.Reviewer, value: rfq.reviewer },
+              ]
+            : rfq.reviewer
+            ? [{ id: wrikeCustomFields.Reviewer, value: rfq.reviewer }]
+            : rfq.customerName
+            ? [
+                {
+                  id: wrikeCustomFields.Customer,
+                  value: rfq.customerName.toUpperCase(),
+                },
+              ]
+            : null,
+          rfq.status,
+          null,
+          [...(rfq.assinged == null ? Object.values(graphIDToWrikeID) : [])]
+        );
+        console.log("not new, but modified");
+      }
+    });
+  } catch (e) {
+    console.log(`error connecting to mongodb: ${e}`);
+  }
+
   res.status(200).send("good");
 });
 

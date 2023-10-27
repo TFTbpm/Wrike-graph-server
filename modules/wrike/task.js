@@ -63,7 +63,7 @@ async function createTask(
     const URI = `https://www.wrike.com/api/v4/folders/${folderId}/tasks?${queryString}`;
     // console.log(`URL: ${URL} \n tokentype:${typeof access_token}`);
 
-    const response = await fetch(URL, {
+    const response = await fetch(URI, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${access_token}`,
@@ -191,14 +191,14 @@ async function deleteTask(taskId, access_token) {
 async function getTasks(taskId, access_token) {
   taskId = taskId || "";
   try {
-    let url = "https://www.wrike.com/api/v4/tasks/";
+    let URI = "https://www.wrike.com/api/v4/tasks/";
     if (typeof taskId === "object") {
       let tasks = taskId.join("%2C%20");
-      url += tasks;
+      URI += tasks;
     } else {
-      url += taskId;
+      URI += taskId;
     }
-    const response = await fetch(url, {
+    const response = await fetch(URI, {
       headers: {
         Authorization: `Bearer ${access_token}`,
       },
