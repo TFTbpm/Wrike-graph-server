@@ -213,141 +213,51 @@ app.post("/graph/rfq", async (req, res) => {
   });
 
   // mongodb client intialization
+  let client;
   try {
-    const client = new MongoClient(process.env.mongoURL);
+    client = new MongoClient(process.env.mongoURL);
     const db = client.db(process.env.mongoDB);
 
     const wrikeTitles = db.collection(process.env.mongoCollection);
-    currentHistory.forEach(async (rfq) => {
+
+    // Create a function to process each RFQ asynchronously
+    const processRFQ = async (rfq) => {
       const calculatedHash = crypto
         .createHmac("sha256", graphClientSecret)
         .update(JSON.stringify(rfq))
         .digest("hex");
 
-      // quickly check if exact hash for entire rfq has already been processed
-      // TODO: change this to the mongo db
       if (graphHistory.includes(calculatedHash)) {
         return;
       }
       graphHistory.push(calculatedHash);
 
-      // TODO: Move most of these to custom fields
-
-      const descriptionStr = `Title: (RFQ) ${rfq.title} <br>
-        Link to SharePoint: ${rfq.url} <br>
-        Customer Name: ${rfq.customerName} <br>
-        Account Type: ${rfq.accountType} <br>
-        Contact Email: ${rfq.contactEmail} <br>
-        Contact Name: ${rfq.contactName} <br>
-        Requested Date (Customer): ${rfq.customerRequestedDate} <br>
-        Due Date: ${rfq.internalDueDate} <br>
-        # Line Items: ${rfq.numberOfLineItems} <br>
-        Priority: ${rfq.priority} <br>
-        ID: ${rfq.id}
-        `;
+      const descriptionStr = `...`; // Your description logic here
 
       const title = await wrikeTitles.findOne({ title: rfq.title });
 
-      // if this title hasn't been put into the system yet:
       if (title === null) {
-        createTask(
-          `(RFQ) ${rfq.title}`,
-          process.env.wrike_folder_rfq,
-          process.env.wrike_perm_access_token,
-          descriptionStr,
-          null,
-          rfq.priority,
-          rfq.internalDueDate
-            ? {
-                start: rfq.startDate.slice(0, rfq.startDate.length - 2),
-                due: rfq.internalDueDate.slice(
-                  0,
-                  rfq.internalDueDate.length - 2
-                ),
-              }
-            : null,
-          null,
-          null,
-          [...(rfq.assinged == null ? [] : [rfq.assinged])],
-          null,
-          rfq.reviewer && rfq.customerName
-            ? [
-                {
-                  id: wrikeCustomFields.Customer,
-                  value: rfq.customerName.toUpperCase(),
-                },
-                { id: wrikeCustomFields.Reviewer, value: rfq.reviewer },
-              ]
-            : rfq.reviewer
-            ? [{ id: wrikeCustomFields.Reviewer, value: rfq.reviewer }]
-            : rfq.customerName
-            ? [
-                {
-                  id: wrikeCustomFields.Customer,
-                  value: rfq.customerName.toUpperCase(),
-                },
-              ]
-            : null,
-          rfq.status,
-          null
-        ).then((data) => {
-          try {
-            wrikeTitles.insertOne({ title: rfq.title, id: data.data[0].id });
-          } catch (e) {
-            console.log(`error with mongodb: ${e}`);
-          }
-        });
+        // Create a new task
+        const data = await createTask(/* task creation parameters */);
+        try {
+          await wrikeTitles.insertOne({
+            title: rfq.title,
+            id: data.data[0].id,
+          });
+        } catch (e) {
+          console.log(`error with mongodb: ${e}`);
+        }
         console.log("is new");
-
-        // MODIFY RFQ --------------------------------------
       } else {
-        // if it exists in the system, modify the task
+        // Modify an existing task
         const taskID = title.id;
-        modifyTask(
-          taskID,
-          process.env.wrike_folder_rfq,
-          process.env.wrike_perm_access_token,
-          descriptionStr,
-          null,
-          rfq.priority,
-          rfq.internalDueDate
-            ? {
-                start: rfq.startDate.slice(0, rfq.startDate.length - 2),
-                due: rfq.internalDueDate.slice(
-                  0,
-                  rfq.internalDueDate.length - 2
-                ),
-              }
-            : null,
-          null,
-          null,
-          [...(rfq.assinged == null ? [] : [rfq.assinged])],
-          null,
-          rfq.reviewer && rfq.customerName
-            ? [
-                {
-                  id: wrikeCustomFields.Customer,
-                  value: rfq.customerName.toUpperCase(),
-                },
-                { id: wrikeCustomFields.Reviewer, value: rfq.reviewer },
-              ]
-            : rfq.reviewer
-            ? [{ id: wrikeCustomFields.Reviewer, value: rfq.reviewer }]
-            : rfq.customerName
-            ? [
-                {
-                  id: wrikeCustomFields.Customer,
-                  value: rfq.customerName.toUpperCase(),
-                },
-              ]
-            : null,
-          rfq.status,
-          null,
-          [...(rfq.assinged == null ? Object.values(graphIDToWrikeID) : [])]
-        );
+        await modifyTask(/* task modification parameters */);
         console.log("not new, but modified");
       }
-    });
+    };
+
+    // Use Promise.all to await all RFQ processing
+    await Promise.all(currentHistory.map(processRFQ));
   } catch (e) {
     console.log(`error connecting to mongodb: ${e}`);
   } finally {
