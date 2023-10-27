@@ -216,6 +216,7 @@ app.post("/graph/rfq", async (req, res) => {
   try {
     const client = new MongoClient(process.env.mongoURL);
     const db = client.db(process.env.mongoDB);
+
     const wrikeTitles = db.collection(process.env.mongoCollection);
     currentHistory.forEach(async (rfq) => {
       const calculatedHash = crypto
@@ -279,7 +280,7 @@ app.post("/graph/rfq", async (req, res) => {
               ]
             : rfq.reviewer
             ? [{ id: wrikeCustomFields.Reviewer, value: rfq.reviewer }]
-            : rfq.customerName.toUpperCase()
+            : rfq.customerName
             ? [
                 {
                   id: wrikeCustomFields.Customer,
@@ -349,6 +350,8 @@ app.post("/graph/rfq", async (req, res) => {
     });
   } catch (e) {
     console.log(`error connecting to mongodb: ${e}`);
+  } finally {
+    client.close();
   }
 
   res.status(200).send("good");
