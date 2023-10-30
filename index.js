@@ -2,17 +2,19 @@ const express = require("express");
 const { validationResult, header } = require("express-validator");
 const { config } = require("dotenv");
 const crypto = require("node:crypto");
-const { processRFQ } = require("./modules/wrike/task");
+const {
+  processRFQ,
+  createTask,
+  modifyTask,
+  processDataSheet,
+} = require("./modules/wrike/task");
 const graphAccessData = require("./modules/graph/accessToken");
 const rateLimit = require("express-rate-limit");
 const getRFQData = require("./modules/graph/rfq");
-
-const refreshCustomerList = require("./modules/wrike/refreshFields");
+const getDatasheets = require("./modules/graph/datasheet");
 
 // dotenv config
 config();
-let client;
-
 // This is hashed to verify the source
 let rawRequestBody = "";
 // This is used to verify we haven't already sent that info (low latency check)
@@ -144,10 +146,7 @@ app.get("/", (req, res) => {
   res.send("up on /");
 });
 
-app.post("/graph/rfq", async (req, res) => {
-  let currentHistory = [];
-
-  // for initlaizing ms subscription
+app.post("/graph/*", (req, res, next) => {
   if (req.url.includes("validationToken=")) {
     // have to check for %3A with a regex and replace matches since decodeURI treats them as special char
     res
@@ -166,6 +165,11 @@ app.post("/graph/rfq", async (req, res) => {
     );
     return;
   }
+  next();
+});
+
+app.post("/graph/rfq", async (req, res) => {
+  let currentHistory = [];
 
   const accessData = await graphAccessData();
   let rfqData = await getRFQData(
@@ -214,16 +218,36 @@ app.post("/graph/rfq", async (req, res) => {
 });
 
 app.post("/graph/datasheets", async (req, res) => {
-  if (req.url.includes("validationToken=")) {
-    // have to check for %3A with a regex and replace matches since decodeURI treats them as special char
-    res
-      .contentType("text/plain")
-      .status(200)
-      .send(
-        decodeURI(req.url.replace(/%3A/g, ":").split("validationToken=")[1])
-      );
-    return;
+  let currentHistory = [];
+  const accessData = await graphAccessData();
+  let datasheetData = await getDatasheets(
+    process.env.graph_site_id_sales,
+    process.env.graph_list_id_datasheet,
+    accessData.access_token
+  );
+  // console.log(datasheets);
+  datasheetData.value.forEach(async (datasheet) => {
+    currentHistory.push({
+      title: `(DS) ${datasheet.fields.Title}` || null,
+      description: datasheet.fields.field_2 || null,
+      priority: datasheet.fields.field_5 || null,
+      author: graphIDToWrikeID[datasheet.fields.Author0LookupId] || null,
+      status: datasheet.fields.Status || null,
+      priorityNumber: datasheet.fields.Priority_x0023_ || null,
+      guide:
+        graphIDToWrikeID[datasheet.fields.Guide_x002f_Mentor.LookupId] || null,
+    });
+
+    // console.log(currentHistory);
+  });
+  console.log(currentHistory);
+  try {
+    await Promise.all(currentHistory.map(processDataSheet));
+  } catch (e) {
+    console.log(`error mapping datasheets: ${e}`);
   }
+
+  res.status(200).send("good");
 });
 
 app.use("*", (req, res) => {

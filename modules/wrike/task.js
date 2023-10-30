@@ -47,7 +47,12 @@ async function createTask(
       dates: dates || null, // obj
       shareds: shareds || null, //array
       parents: parents || null, // array
-      responsibles: responsibles.length > 0 ? responsibles : null, // array
+      responsibles:
+        responsibles === null
+          ? null
+          : responsibles.length > 0
+          ? responsibles
+          : null, // array
       metadata: metadata || null, // array
       customFields: customFields || null, // array
       customStatus: customStatus || null,
@@ -70,7 +75,7 @@ async function createTask(
 
     const queryString = queryParams.join("&");
 
-    const URI = `https://www.wrike.com/api/v4/folders/${folderId}/tasks?${queryString}`;
+    URI = `https://www.wrike.com/api/v4/folders/${folderId}/tasks?${queryString}`;
     // console.log(`URL: ${URL} \n tokentype:${typeof access_token}`);
 
     const response = await fetch(URI, {
@@ -227,7 +232,7 @@ async function getTasks(taskId, access_token) {
 async function processRFQ(rfq) {
   client = new MongoClient(process.env.mongoURL);
   const db = client.db(process.env.mongoDB);
-  const wrikeTitles = db.collection(process.env.mongoCollection);
+  const wrikeTitles = db.collection(process.env.mongoRFQCollection);
 
   // TODO: Move most of these to custom fields
 
@@ -350,4 +355,66 @@ async function processRFQ(rfq) {
   }
 }
 
-module.exports = { createTask, modifyTask, deleteTask, getTasks, processRFQ };
+async function processDataSheet(datasheet) {
+  client = new MongoClient(process.env.mongoURL);
+  const db = client.db(process.env.mongoDB);
+  const wrikeTitles = db.collection(process.env.mongoDatasheetCollection);
+
+  const title = await wrikeTitles.findOne({ title: datasheet.title });
+  if (title === null) {
+    try {
+      createTask(
+        datasheet.title,
+        process.env.wrike_folder_datasheet_requests,
+        process.env.wrike_perm_access_token,
+        datasheet.description,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ).then((data) => {
+        wrikeTitles.insertOne({ title: datasheet.title, id: data.data[0].id });
+      });
+    } catch (e) {
+      console.log(`error creeating datasheet: ${e}`);
+    }
+  } else {
+    try {
+      const taskID = title.id;
+      modifyTask(
+        taskID,
+        process.env.wrike_folder_datasheet_requests,
+        process.env.wrike_perm_access_token,
+        datasheet.description,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      );
+    } catch (e) {
+      console.log(`error editing datasheet: ${e}`);
+    }
+  }
+}
+
+module.exports = {
+  createTask,
+  modifyTask,
+  deleteTask,
+  getTasks,
+  processRFQ,
+  processDataSheet,
+};
