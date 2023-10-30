@@ -382,7 +382,7 @@ async function processDataSheet(datasheet) {
         wrikeTitles.insertOne({ title: datasheet.title, id: data.data[0].id });
       });
     } catch (e) {
-      console.log(`error creeating datasheet: ${e}`);
+      console.log(`error creating datasheet: ${e}`);
     }
   } else {
     try {

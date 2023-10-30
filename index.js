@@ -2,12 +2,7 @@ const express = require("express");
 const { validationResult, header } = require("express-validator");
 const { config } = require("dotenv");
 const crypto = require("node:crypto");
-const {
-  processRFQ,
-  createTask,
-  modifyTask,
-  processDataSheet,
-} = require("./modules/wrike/task");
+const { processRFQ, processDataSheet } = require("./modules/wrike/task");
 const graphAccessData = require("./modules/graph/accessToken");
 const rateLimit = require("express-rate-limit");
 const getRFQData = require("./modules/graph/rfq");
@@ -212,7 +207,7 @@ app.post("/graph/rfq", async (req, res) => {
   try {
     await Promise.all(currentHistory.map(processRFQ));
   } catch (e) {
-    console.log(`error: ${e}`);
+    console.log(`error mapping rfq: ${e}`);
   }
   res.status(200).send("good");
 });
@@ -225,7 +220,6 @@ app.post("/graph/datasheets", async (req, res) => {
     process.env.graph_list_id_datasheet,
     accessData.access_token
   );
-  // console.log(datasheets);
   datasheetData.value.forEach(async (datasheet) => {
     currentHistory.push({
       title: `(DS) ${datasheet.fields.Title}` || null,
@@ -237,8 +231,6 @@ app.post("/graph/datasheets", async (req, res) => {
       guide:
         graphIDToWrikeID[datasheet.fields.Guide_x002f_Mentor.LookupId] || null,
     });
-
-    // console.log(currentHistory);
   });
   console.log(currentHistory);
   try {
