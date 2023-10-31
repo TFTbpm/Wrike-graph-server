@@ -119,65 +119,73 @@ async function modifyTask(
   removeResponsibles
 ) {
   let URI;
-  try {
-    if (taskId === undefined || folderId === undefined) {
-      return;
-    }
-    const stringArr = [
-      "title",
-      "description",
-      "status",
-      "importance",
-      "customStatus",
-    ];
-    const params = {
-      description: description || null,
-      status: status || null,
-      importance: importance || null,
-      dates: dates || null,
-      shareds: shareds || null,
-      parents: parents || null,
-      addResponsibles: addResponsibles || null,
-      metadata: metadata || null,
-      customFields: customFields || null,
-      customStatus: customStatus || null,
-      fields: fields || null,
-      removeResponsibles: removeResponsibles || null,
-    };
-    const queryParams = [];
+  const maxRetries = 3;
+  let retryCount = 0;
+  const retryDelay = 1000;
+  while (retryCount < maxRetries) {
+    try {
+      if (taskId === undefined || folderId === undefined) {
+        return;
+      }
+      const stringArr = [
+        "title",
+        "description",
+        "status",
+        "importance",
+        "customStatus",
+      ];
+      const params = {
+        description: description || null,
+        status: status || null,
+        importance: importance || null,
+        dates: dates || null,
+        shareds: shareds || null,
+        parents: parents || null,
+        addResponsibles: addResponsibles || null,
+        metadata: metadata || null,
+        customFields: customFields || null,
+        customStatus: customStatus || null,
+        fields: fields || null,
+        removeResponsibles: removeResponsibles || null,
+      };
+      const queryParams = [];
 
-    for (const key in params) {
-      if (params[key] !== null) {
-        if (stringArr.includes(key)) {
-          // if its a string
-          queryParams.push(`${key}=${encodeURIComponent(params[key])}`);
-        } else {
-          // if its an object
-          queryParams.push(`${key}=${JSON.stringify(params[key])}`);
+      for (const key in params) {
+        if (params[key] !== null) {
+          if (stringArr.includes(key)) {
+            // if its a string
+            queryParams.push(`${key}=${encodeURIComponent(params[key])}`);
+          } else {
+            // if its an object
+            queryParams.push(`${key}=${JSON.stringify(params[key])}`);
+          }
         }
       }
-    }
 
-    const queryString = queryParams.join("&");
+      const queryString = queryParams.join("&");
 
-    URI = `https://www.wrike.com/api/v4/tasks/${taskId}?${queryString}`;
-    // console.log(URL);
-    const response = await fetch(URI, {
-      method: "PUT",
-      headers: {
-        Authorization: `Bearer ${access_token}`,
-      },
-    });
-    if (!response.ok) {
-      throw new Error(`Request failed with status ${response.status}`);
+      URI = `https://www.wrike.com/api/v4/tasks/${taskId}?${queryString}`;
+      const response = await fetch(URI, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${access_token}`,
+        },
+      });
+      if (!response.ok) {
+        throw new Error(`Request failed with status ${response.status}`);
+      }
+      const data = await response.json();
+      return await data;
+    } catch (error) {
+      lastError = error;
+      console.error(
+        `An error occured while modifying a task: ${error} \n URL: ${URI} \n retry ${retryCount}`
+      );
+      retryCount++;
+      await new Promise((p) => {
+        setTimeout(p, retryDelay);
+      });
     }
-    const data = await response.json();
-    return await data;
-  } catch (error) {
-    console.error(
-      `An error occured while modifying a task: ${error} \n URL: ${URI}`
-    );
-    throw error;
   }
 }
 
