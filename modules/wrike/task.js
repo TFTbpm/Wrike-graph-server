@@ -7,7 +7,7 @@ const wrikeCustomFields = {
 };
 
 const graphIDToWrikeID = { 12: "KUAQZDX2", 189: "KUARCPVF", 832: "KUAQ3CVX" };
-
+// TODO: Add retry here
 async function createTask(
   title,
   folderId,
@@ -377,14 +377,18 @@ async function processDataSheet(datasheet) {
         process.env.wrike_perm_access_token,
         datasheet.description,
         null,
+        // TODO: this is not priority
+        datasheet.priority,
+        {
+          start: datasheet.startDate.slice(0, datasheet.startDate.length - 1),
+          duration: 4800,
+        },
         null,
         null,
         null,
         null,
         null,
-        null,
-        null,
-        null,
+        datasheet.status,
         null
       ).then((data) => {
         wrikeTitles.insertOne({ title: datasheet.title, id: data.data[0].id });
@@ -401,14 +405,17 @@ async function processDataSheet(datasheet) {
         process.env.wrike_perm_access_token,
         datasheet.description,
         null,
+        datasheet.priority,
+        {
+          start: datasheet.startDate.slice(0, datasheet.startDate.length - 1),
+          duration: 4800,
+        },
         null,
         null,
         null,
         null,
         null,
-        null,
-        null,
-        null,
+        datasheet.status,
         null,
         null
       );

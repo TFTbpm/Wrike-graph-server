@@ -48,10 +48,70 @@ const rfqCustomStatuses = [
     name: "Deleted",
   },
 ];
-const graphPriorityToWrikeImportance = {
+const dsCustomStatuses = [
+  {
+    id: "IEAF5SOTJMEEOFGO", //active
+    name: "Working on Document",
+  },
+  {
+    id: "IEAF5SOTJMEEOFGY", // peer review
+    name: "Peer Review",
+  },
+  {
+    id: "IEAF5SOTJMEEOFHC", // ready to route
+    name: "Ready to Route",
+  },
+  {
+    id: "IEAF5SOTJMEEOFHM", // routed
+    name: "Routed for Approval",
+  },
+  {
+    id: "IEAF5SOTJMEEOFGP", // completed
+    name: "Approved in DMS-Complete",
+  },
+  {
+    id: "IEAF5SOTJMEEOFIW", // need escalation
+    name: "Needs Escalation",
+  },
+  {
+    id: "IEAF5SOTJMEEOFJA", // pending info
+    name: "Pending Information",
+  },
+  {
+    id: "IEAF5SOTJMEEOFIM", // deferred
+    name: "Open",
+  },
+  {
+    id: "IEAF5SOTJMEEOFGP", // completed
+    name: "Achieve",
+  },
+  {
+    id: "IEAF5SOTJMEEOJ5Z", // cancelled
+    name: "Canceled",
+  },
+  {
+    id: "IEAF5SOTJMEEOFIM", // deferred
+    name: "Closed",
+  },
+  {
+    id: "IEAF5SOTJMEEOFGO", //active
+    name: "Draft Completed",
+  },
+  {
+    id: "IEAF5SOTJMEEOFHM", //routed
+    name: "Routed",
+  },
+];
+const graphRFQPriorityToWrikeImportance = {
   High: "High",
   Medium: "Normal",
   Low: "Low",
+};
+const graphDSPriorityToWrikeImportance = {
+  High: "High",
+  Medium: "Normal",
+  Low: "Low",
+  Critical: "High",
 };
 const graphIDToWrikeID = { 12: "KUAQZDX2", 189: "KUARCPVF", 832: "KUAQ3CVX" };
 
@@ -190,8 +250,8 @@ app.post("/graph/rfq", async (req, res) => {
       startDate: element.createdDateTime,
       numberOfLineItems: element.fields.Number_x0020_of_x0020_Line_x0020_Items,
       priority:
-        graphPriorityToWrikeImportance[element.fields.Priority] ||
-        graphPriorityToWrikeImportance.Medium,
+        graphRFQPriorityToWrikeImportance[element.fields.Priority] ||
+        graphRFQPriorityToWrikeImportance.Medium,
       quoteSource: element.fields.Quote_x0020_Source,
       status:
         rfqCustomStatuses.filter((s) => s.name == element.fields.Status)[0]
@@ -231,13 +291,21 @@ app.post("/graph/datasheets", async (req, res) => {
       currentHistory.push({
         title: `(DS) ${datasheet.fields.Title}` || null,
         description: datasheet.fields.field_2 || null,
-        priority: datasheet.fields.field_5 || null,
+        priority:
+          graphDSPriorityToWrikeImportance[datasheet.fields.field_5] ||
+          graphDSPriorityToWrikeImportance.Medium,
         author: graphIDToWrikeID[datasheet.fields.Author0LookupId] || null,
-        status: datasheet.fields.Status || null,
-        priorityNumber: datasheet.fields.Priority_x0023_ || null,
-        guide:
-          graphIDToWrikeID[datasheet.fields.Guide_x002f_Mentor.LookupId] ||
+        status:
+          dsCustomStatuses.filter((s) => s.name == datasheet.fields.Status)[0]
+            .id ||
+          "IEAF5SOTJMEEOFGO" ||
           null,
+        priorityNumber: datasheet.fields.Priority_x0023_ || null,
+        guide: datasheet.fields.Guide_x002f_Mentor
+          ? graphIDToWrikeID[datasheet.fields.Guide_x002f_Mentor.LookupId] ||
+            null
+          : null,
+        startDate: datasheet.createdDateTime,
       });
     });
   } catch (e) {
