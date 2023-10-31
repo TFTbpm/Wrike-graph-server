@@ -242,11 +242,13 @@ app.post("/graph/datasheets", async (req, res) => {
     });
   } catch (e) {
     console.log(
-      `there was an error iterating datasheets: ${e} \n data: ${datasheetData}`
+      `there was an error iterating datasheets: ${e} \n data: ${JSON.stringify(
+        datasheetData
+      )}`
     );
   }
 
-  console.log(currentHistory);
+  // console.log(currentHistory);
   try {
     await Promise.all(currentHistory.map(processDataSheet));
   } catch (e) {
