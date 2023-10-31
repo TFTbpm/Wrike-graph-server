@@ -215,23 +215,37 @@ app.post("/graph/rfq", async (req, res) => {
 app.post("/graph/datasheets", async (req, res) => {
   let currentHistory = [];
   const accessData = await graphAccessData();
-  let datasheetData = await getDatasheets(
-    process.env.graph_site_id_sales,
-    process.env.graph_list_id_datasheet,
-    accessData.access_token
-  );
-  datasheetData.value.forEach(async (datasheet) => {
-    currentHistory.push({
-      title: `(DS) ${datasheet.fields.Title}` || null,
-      description: datasheet.fields.field_2 || null,
-      priority: datasheet.fields.field_5 || null,
-      author: graphIDToWrikeID[datasheet.fields.Author0LookupId] || null,
-      status: datasheet.fields.Status || null,
-      priorityNumber: datasheet.fields.Priority_x0023_ || null,
-      guide:
-        graphIDToWrikeID[datasheet.fields.Guide_x002f_Mentor.LookupId] || null,
+  let datasheetData;
+  try {
+    datasheetData = await getDatasheets(
+      process.env.graph_site_id_sales,
+      process.env.graph_list_id_datasheet,
+      accessData.access_token
+    );
+  } catch (e) {
+    console.log(`There was an error fetching datasheets: ${e}`);
+  }
+  // ! TODO: there is an error here: Unhandled Promise Rejection 	{"errorType":"Runtime.UnhandledPromiseRejection","errorMessage":"TypeError: Cannot read properties of undefined (reading 'forEach')","reason":{"errorType":"TypeError","errorMessage":"Cannot read properties of undefined (reading 'forEach')","stack":["TypeError: Cannot read properties of undefined (reading 'forEach')","    at /var/task/index.js:223:23","    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)"]},"promise":{},"stack":["Runtime.UnhandledPromiseRejection: TypeError: Cannot read properties of undefined (reading 'forEach')","    at process.<anonymous> (file:///var/runtime/index.mjs:1276:17)","    at process.emit (node:events:529:35)","    at emit (node:internal/process/promises:149:20)","    at processPromiseRejections (node:internal/process/promises:283:27)","    at process.processTicksAndRejections (node:internal/process/task_queues:96:32)"]}
+  try {
+    datasheetData.value.forEach(async (datasheet) => {
+      currentHistory.push({
+        title: `(DS) ${datasheet.fields.Title}` || null,
+        description: datasheet.fields.field_2 || null,
+        priority: datasheet.fields.field_5 || null,
+        author: graphIDToWrikeID[datasheet.fields.Author0LookupId] || null,
+        status: datasheet.fields.Status || null,
+        priorityNumber: datasheet.fields.Priority_x0023_ || null,
+        guide:
+          graphIDToWrikeID[datasheet.fields.Guide_x002f_Mentor.LookupId] ||
+          null,
+      });
     });
-  });
+  } catch (e) {
+    console.log(
+      `there was an error iterating datasheets: ${e} \n data: ${datasheetData}`
+    );
+  }
+
   console.log(currentHistory);
   try {
     await Promise.all(currentHistory.map(processDataSheet));
