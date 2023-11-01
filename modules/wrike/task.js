@@ -9,7 +9,6 @@ const wrikeCustomFields = {
 };
 
 const graphIDToWrikeID = { 12: "KUAQZDX2", 189: "KUARCPVF", 832: "KUAQ3CVX" };
-// TODO: Add retry here
 async function createTask(
   title,
   folderId,
@@ -27,79 +26,90 @@ async function createTask(
   fields
 ) {
   let URI;
-  try {
-    if (title === undefined || folderId === undefined) {
-      return;
-    }
+  const maxRetries = 3;
+  let retryCount = 0;
+  const retryDelay = 1000;
+  while (retryCount < maxRetries) {
+    try {
+      if (title === undefined || folderId === undefined) {
+        return;
+      }
 
-    // these need to be defined since Wrike doesnt take URI encoding for objects
-    const stringArr = [
-      "title",
-      "description",
-      "status",
-      "importance",
-      "customStatus",
-    ];
+      // these need to be defined since Wrike doesnt take URI encoding for objects
+      const stringArr = [
+        "title",
+        "description",
+        "status",
+        "importance",
+        "customStatus",
+      ];
 
-    const params = {
-      title: title || null,
-      description: description || null,
-      status: status || null,
-      importance: importance || null,
-      dates: dates || null, // obj
-      shareds: shareds || null, //array
-      parents: parents || null, // array
-      responsibles:
-        responsibles === null
-          ? null
-          : responsibles.length > 0
-          ? responsibles
-          : null, // array
-      metadata: metadata || null, // array
-      customFields: customFields || null, // array
-      customStatus: customStatus || null,
-      fields: fields || null, // array
-    };
+      const params = {
+        title: title || null,
+        description: description || null,
+        status: status || null,
+        importance: importance || null,
+        dates: dates || null, // obj
+        shareds: shareds || null, //array
+        parents: parents || null, // array
+        responsibles:
+          responsibles === null
+            ? null
+            : responsibles.length > 0
+            ? responsibles
+            : null, // array
+        metadata: metadata || null, // array
+        customFields: customFields || null, // array
+        customStatus: customStatus || null,
+        fields: fields || null, // array
+      };
 
-    const queryParams = [];
+      const queryParams = [];
 
-    for (const key in params) {
-      if (params[key] !== null) {
-        if (stringArr.includes(key)) {
-          // if its a string
-          queryParams.push(`${key}=${encodeURIComponent(params[key])}`);
-        } else {
-          // if its an object
-          queryParams.push(`${key}=${JSON.stringify(params[key])}`);
+      for (const key in params) {
+        if (params[key] !== null) {
+          if (stringArr.includes(key)) {
+            // if its a string
+            queryParams.push(`${key}=${encodeURIComponent(params[key])}`);
+          } else {
+            // if its an object
+            queryParams.push(`${key}=${JSON.stringify(params[key])}`);
+          }
         }
       }
-    }
 
-    const queryString = queryParams.join("&");
+      const queryString = queryParams.join("&");
 
-    URI = `https://www.wrike.com/api/v4/folders/${folderId}/tasks?${queryString}`;
-    // console.log(`URL: ${URL} \n tokentype:${typeof access_token}`);
+      URI = `https://www.wrike.com/api/v4/folders/${folderId}/tasks?${queryString}`;
+      // console.log(`URL: ${URL} \n tokentype:${typeof access_token}`);
 
-    const response = await fetch(URI, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${access_token}`,
-        "Content-Type": "application/json",
-      },
-    });
-    // console.log(response);
+      const response = await fetch(URI, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${access_token}`,
+          "Content-Type": "application/json",
+        },
+      });
+      // console.log(response);
 
-    if (!response.ok) {
-      throw new Error(
-        `Request failed with status ${response.status}, ${response.statusText}. \n URL: ${URI}`
+      if (!response.ok) {
+        throw new Error(
+          `Request failed with status ${response.status}, ${response.statusText}. \n URL: ${URI}`
+        );
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      lastError = error;
+      console.error(
+        `An error occured while modifying a task: ${error} \n URL: ${URI} \n retry ${retryCount}`
       );
+      retryCount++;
+      await new Promise((p) => {
+        setTimeout(p, retryDelay);
+      });
     }
-
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error(`An error occurred while creating a task: ${error}`);
-    throw error;
   }
 }
 
