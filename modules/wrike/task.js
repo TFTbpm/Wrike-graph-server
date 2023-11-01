@@ -4,6 +4,8 @@ const wrikeCustomFields = {
   Customer: "IEAF5SOTJUAFB2KU",
   Reviewer: "IEAF5SOTJUAE4XCY",
   Impact: "IEAF5SOTJUAEUZME",
+  Priority: "IEAF5SOTJUAFCL3W",
+  Guide: "IEAF5SOTJUAFCL3U",
 };
 
 const graphIDToWrikeID = { 12: "KUAQZDX2", 189: "KUARCPVF", 832: "KUAQ3CVX" };
@@ -377,7 +379,6 @@ async function processDataSheet(datasheet) {
         process.env.wrike_perm_access_token,
         datasheet.description,
         null,
-        // TODO: this is not priority
         datasheet.priority,
         {
           start: datasheet.startDate.slice(0, datasheet.startDate.length - 1),
@@ -387,7 +388,23 @@ async function processDataSheet(datasheet) {
         null,
         null,
         null,
-        null,
+        datasheet.guide
+          ? [
+              {
+                id: wrikeCustomFields.Guide,
+                value: datasheet.guide,
+              },
+              {
+                id: wrikeCustomFields.Priority,
+                value: parseInt(datasheet.priorityNumber),
+              },
+            ]
+          : [
+              {
+                id: wrikeCustomFields.Priority,
+                value: parseInt(datasheet.priorityNumber),
+              },
+            ],
         datasheet.status,
         null
       ).then((data) => {
@@ -414,7 +431,23 @@ async function processDataSheet(datasheet) {
         null,
         null,
         null,
-        null,
+        datasheet.guide
+          ? [
+              {
+                id: wrikeCustomFields.Guide,
+                value: datasheet.guide,
+              },
+              {
+                id: wrikeCustomFields.Priority,
+                value: parseInt(datasheet.priorityNumber),
+              },
+            ]
+          : [
+              {
+                id: wrikeCustomFields.Priority,
+                value: parseInt(datasheet.priorityNumber),
+              },
+            ],
         datasheet.status,
         null,
         null

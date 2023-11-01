@@ -285,16 +285,21 @@ app.post("/graph/datasheets", async (req, res) => {
   } catch (e) {
     console.log(`There was an error fetching datasheets: ${e}`);
   }
-  // ! TODO: there is an error here: Unhandled Promise Rejection 	{"errorType":"Runtime.UnhandledPromiseRejection","errorMessage":"TypeError: Cannot read properties of undefined (reading 'forEach')","reason":{"errorType":"TypeError","errorMessage":"Cannot read properties of undefined (reading 'forEach')","stack":["TypeError: Cannot read properties of undefined (reading 'forEach')","    at /var/task/index.js:223:23","    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)"]},"promise":{},"stack":["Runtime.UnhandledPromiseRejection: TypeError: Cannot read properties of undefined (reading 'forEach')","    at process.<anonymous> (file:///var/runtime/index.mjs:1276:17)","    at process.emit (node:events:529:35)","    at emit (node:internal/process/promises:149:20)","    at processPromiseRejections (node:internal/process/promises:283:27)","    at process.processTicksAndRejections (node:internal/process/task_queues:96:32)"]}
   try {
     datasheetData.value.forEach(async (datasheet) => {
       currentHistory.push({
         title: `(DS) ${datasheet.fields.Title}` || null,
-        description: datasheet.fields.field_2 || null,
+        description: `${datasheet.fields.field_2
+          .split("\n")
+          .join(
+            "<br>"
+          )} <br> Link: https://eigoa.sharepoint.com/sites/TFTSales/Lists/Datasheet%20Priority%20List/DispForm.aspx?ID=${
+          datasheet.fields.id
+        }`,
         priority:
           graphDSPriorityToWrikeImportance[datasheet.fields.field_5] ||
           graphDSPriorityToWrikeImportance.Medium,
-        author: graphIDToWrikeID[datasheet.fields.Author0LookupId] || null,
+        assignee: graphIDToWrikeID[datasheet.fields.Author0LookupId] || null,
         status:
           dsCustomStatuses.filter((s) => s.name == datasheet.fields.Status)[0]
             .id ||
@@ -315,8 +320,6 @@ app.post("/graph/datasheets", async (req, res) => {
       )}`
     );
   }
-
-  // console.log(currentHistory);
   try {
     await Promise.all(currentHistory.map(processDataSheet));
   } catch (e) {
