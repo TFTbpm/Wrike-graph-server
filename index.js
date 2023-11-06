@@ -7,6 +7,7 @@ const graphAccessData = require("./modules/graph/accessToken");
 const rateLimit = require("express-rate-limit");
 const getRFQData = require("./modules/graph/rfq");
 const getDatasheets = require("./modules/graph/datasheet");
+const getOrders = require("./modules/graph/order");
 
 // dotenv config
 config();
@@ -326,6 +327,22 @@ app.post("/graph/datasheets", async (req, res) => {
     console.log(`error mapping datasheets: ${e}`);
   }
 
+  res.status(200).send("good");
+});
+
+app.post("/graph/order", async (req, res) => {
+  let currentHistory = [];
+  const accessData = await graphAccessData();
+  let datasheetData;
+  try {
+    datasheetData = await getOrders(
+      process.env.graph_site_id_sales,
+      process.env.graph_list_id_order,
+      accessData.access_token
+    );
+  } catch (e) {
+    console.log(`There was an error fetching orders: ${e}`);
+  }
   res.status(200).send("good");
 });
 
