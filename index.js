@@ -224,51 +224,51 @@ app.post("/graph/*", (req, res, next) => {
 });
 
 app.post("/graph/rfq", async (req, res) => {
-  // let currentHistory = [];
+  let currentHistory = [];
 
-  // const accessData = await graphAccessData();
-  // let rfqData = await getRFQData(
-  //   process.env.graph_site_id_sales,
-  //   process.env.graph_list_id_rfq,
-  //   accessData.access_token
-  // );
+  const accessData = await graphAccessData();
+  let rfqData = await getRFQData(
+    process.env.graph_site_id_sales,
+    process.env.graph_list_id_rfq,
+    accessData.access_token
+  );
 
-  // // TODO: get custom statuses, get customers (CF), add reveiwer to custom field reviewer
-  // // Puts all the elements in an easy to read format
-  // rfqData.value.forEach((element) => {
-  //   currentHistory.push({
-  //     title: element.fields.Title,
-  //     url: element.fields._dlc_DocIdUrl.Url,
-  //     accountType: element.fields.Account_x0020_Type,
-  //     contactEmail: element.fields.Contact_x0020_Email,
-  //     contactName: element.fields.Contact_x0020_Name,
-  //     customerName: element.fields.Customer_x0020_Name,
-  //     customerRequestedDate: element.fields.Customer_x0020_Requested_x0020_Date,
-  //     internalDueDate:
-  //       element.fields.Internal_x0020_Due_x0020_Date ||
-  //       element.fields.Customer_x0020_Requested_x0020_Date,
-  //     startDate: element.createdDateTime,
-  //     numberOfLineItems: element.fields.Number_x0020_of_x0020_Line_x0020_Items,
-  //     priority:
-  //       graphRFQPriorityToWrikeImportance[element.fields.Priority] ||
-  //       graphRFQPriorityToWrikeImportance.Medium,
-  //     quoteSource: element.fields.Quote_x0020_Source,
-  //     status:
-  //       rfqCustomStatuses.filter((s) => s.name == element.fields.Status)[0]
-  //         .id || "IEAF5SOTJMEAFYJS",
-  //     submissionMethod: element.fields.Submission_x0020_Method,
-  //     modified: element.fields.Modified,
-  //     id: element.id,
-  //     assinged: graphIDToWrikeID[element.fields.AssignedLookupId] || null,
-  //     reviewer: graphIDToWrikeID[element.fields.ReviewerLookupId] || null,
-  //   });
-  // });
+  // TODO: get custom statuses, get customers (CF), add reveiwer to custom field reviewer
+  // Puts all the elements in an easy to read format
+  rfqData.value.forEach((element) => {
+    currentHistory.push({
+      title: element.fields.Title,
+      url: element.fields._dlc_DocIdUrl.Url,
+      accountType: element.fields.Account_x0020_Type,
+      contactEmail: element.fields.Contact_x0020_Email,
+      contactName: element.fields.Contact_x0020_Name,
+      customerName: element.fields.Customer_x0020_Name,
+      customerRequestedDate: element.fields.Customer_x0020_Requested_x0020_Date,
+      internalDueDate:
+        element.fields.Internal_x0020_Due_x0020_Date ||
+        element.fields.Customer_x0020_Requested_x0020_Date,
+      startDate: element.createdDateTime,
+      numberOfLineItems: element.fields.Number_x0020_of_x0020_Line_x0020_Items,
+      priority:
+        graphRFQPriorityToWrikeImportance[element.fields.Priority] ||
+        graphRFQPriorityToWrikeImportance.Medium,
+      quoteSource: element.fields.Quote_x0020_Source,
+      status:
+        rfqCustomStatuses.filter((s) => s.name == element.fields.Status)[0]
+          .id || "IEAF5SOTJMEAFYJS",
+      submissionMethod: element.fields.Submission_x0020_Method,
+      modified: element.fields.Modified,
+      id: element.id,
+      assinged: graphIDToWrikeID[element.fields.AssignedLookupId] || null,
+      reviewer: graphIDToWrikeID[element.fields.ReviewerLookupId] || null,
+    });
+  });
 
-  // try {
-  //   await Promise.all(currentHistory.map(processRFQ));
-  // } catch (e) {
-  //   console.log(`error mapping rfq: ${e}`);
-  // }
+  try {
+    await Promise.all(currentHistory.map(processRFQ));
+  } catch (e) {
+    console.log(`error mapping rfq: ${e}`);
+  }
   res.status(200).send("good");
 });
 
