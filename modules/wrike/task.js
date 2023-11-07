@@ -315,7 +315,7 @@ async function processRFQ(rfq) {
         try {
           wrikeTitles.insertOne({ title: rfq.title, id: data.data[0].id });
         } catch (e) {
-          console.log(`error with mongodb: ${e}`);
+          console.log(`error with inserting rfq: ${e}`);
         }
       });
       console.log("is new");
@@ -418,10 +418,18 @@ async function processDataSheet(datasheet) {
         datasheet.status,
         null
       ).then((data) => {
-        wrikeTitles.insertOne({ title: datasheet.title, id: data.data[0].id });
+        console.log("new datasheet");
+        try {
+          wrikeTitles.insertOne({
+            title: datasheet.title,
+            id: data.data[0].id,
+          });
+        } catch (e) {
+          throw new Error(`Error while inserting datasheet: ${e}`);
+        }
       });
     } catch (e) {
-      console.log(`error creating datasheet: ${e}`);
+      console.log(`error creating datasheet: ${e} \n URL: ${URI}`);
     }
   } else {
     try {
@@ -461,7 +469,9 @@ async function processDataSheet(datasheet) {
         datasheet.status,
         null,
         null
-      );
+      ).then((data) => {
+        console.log("updated datasheet");
+      });
     } catch (e) {
       console.log(`error editing datasheet: ${e}`);
     }
