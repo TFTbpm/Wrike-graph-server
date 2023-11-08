@@ -250,7 +250,7 @@ async function getTasks(taskId, access_token) {
 }
 
 async function processRFQ(rfq) {
-  client = new MongoClient(process.env.mongoURL);
+  const client = new MongoClient(process.env.mongoURL);
   const db = client.db(process.env.mongoDB);
   const wrikeTitles = db.collection(process.env.mongoRFQCollection);
 
@@ -429,7 +429,7 @@ async function processDataSheet(datasheet) {
         }
       });
     } catch (e) {
-      console.log(`error creating datasheet: ${e} \n URL: ${URI}`);
+      console.log(`error creating datasheet: ${e}`);
     }
   } else {
     try {
@@ -478,6 +478,71 @@ async function processDataSheet(datasheet) {
   }
 }
 
+async function processOrder(order) {
+  const client = new MongoClient(process.env.mongoURL);
+  const db = client.db(process.env.mongoDB);
+  const wrikeTitles = db.collection(process.env.mongoOrderCollection);
+  const title = await wrikeTitles.findOne({ title: order.title });
+  console.log(title);
+  if (title == null) {
+    try {
+      createTask(
+        order.title,
+        process.env.wrike_folder_orders,
+        process.env.wrike_perm_access_token,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ).then((data) => {
+        console.log("new order");
+        try {
+          wrikeTitles.insertOne({
+            title: order.title,
+            id: data.data[0].id,
+          });
+        } catch (e) {
+          throw new Error(`Error while inserting order: ${e}`);
+        }
+      });
+    } catch (e) {
+      console.log(`error creating order: ${e}`);
+    }
+  } else {
+    const taskID = title.id;
+    try {
+      modifyTask(
+        taskID,
+        process.env.wrike_folder_orders,
+        process.env.wrike_perm_access_token,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ).then((data) => {
+        console.log("updated order");
+      });
+    } catch (e) {
+      console.log(`error modifying order: ${e}`);
+    }
+  }
+}
+
 module.exports = {
   createTask,
   modifyTask,
@@ -485,4 +550,5 @@ module.exports = {
   getTasks,
   processRFQ,
   processDataSheet,
+  processOrder,
 };

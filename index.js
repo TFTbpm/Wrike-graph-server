@@ -2,7 +2,11 @@ const express = require("express");
 const { validationResult, header } = require("express-validator");
 const { config } = require("dotenv");
 const crypto = require("node:crypto");
-const { processRFQ, processDataSheet } = require("./modules/wrike/task");
+const {
+  processRFQ,
+  processDataSheet,
+  processOrder,
+} = require("./modules/wrike/task");
 const graphAccessData = require("./modules/graph/accessToken");
 const rateLimit = require("express-rate-limit");
 const getRFQData = require("./modules/graph/rfq");
@@ -287,7 +291,7 @@ app.post("/graph/datasheets", async (req, res) => {
     console.log(`There was an error fetching datasheets: ${e}`);
   }
   try {
-    datasheetData.value.forEach(async (datasheet) => {
+    datasheetData.value.forEach((datasheet) => {
       currentHistory.push({
         title: `(DS) ${datasheet.fields.Title}` || null,
         description: `${datasheet.fields.field_2
@@ -335,13 +339,35 @@ app.post("/graph/order", async (req, res) => {
   const accessData = await graphAccessData();
   let datasheetData;
   try {
-    datasheetData = await getOrders(
+    orderData = await getOrders(
       process.env.graph_site_id_sales,
       process.env.graph_list_id_order,
       accessData.access_token
     );
   } catch (e) {
     console.log(`There was an error fetching orders: ${e}`);
+  }
+  try {
+    orderData.forEach((order) => {
+      currentHistory.push({
+        title: order.fields.FileLeafRef || null,
+        url: order.fields._dlc_DocIdUrl.url || null,
+        startDate: order.createdDateTime || null,
+        author: graphIDToWrikeID[order.fields.AuthorLookupId] || null,
+        customerName: order.fields.CustomerName || null,
+        poType: order.fields.POType || null,
+        shipToSite: order.fields.ShipToSite || null,
+        poNumber: order.fields.PONumber || null,
+        soNumber: order.fields.SONumber || null,
+      });
+    });
+  } catch (e) {
+    console.error(`there was an error iterating order: ${e}`);
+  }
+  try {
+    await Promise.all(currentHistory.map(processOrder));
+  } catch (e) {
+    console.error(`there was an error mapping order: ${e} ${e.stack}`);
   }
   res.status(200).send("good");
 });

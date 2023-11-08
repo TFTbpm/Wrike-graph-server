@@ -1,6 +1,6 @@
 async function getOrders(site_id, list_id, access_token) {
   const startTime = performance.now();
-  const url = `https://graph.microsoft.com/v1.0/sites/${site_id}/lists/${list_id}/items?$top=999`;
+  const url = `https://graph.microsoft.com/v1.0/sites/${site_id}/lists/${list_id}/items?expand=fields&$top=999`;
   const requestOptions = {
     headers: {
       Authorization: `Bearer ${access_token}`,
@@ -25,7 +25,7 @@ async function getOrders(site_id, list_id, access_token) {
   );
   const filteredItems = allItems.slice(0, 5);
   const endTime = performance.now();
-  console.log(`orders retrieved: (${endTime - startTime}s)`);
+  console.log(`orders retrieved: (${(endTime - startTime) / 1000}s)`);
   return filteredItems;
 }
 
