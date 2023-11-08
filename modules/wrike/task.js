@@ -505,7 +505,7 @@ async function processOrder(order) {
         console.log("new order");
         try {
           wrikeTitles.insertOne({
-            title: order.title,
+            title: order.poNumber,
             id: data.data[0].id,
           });
         } catch (e) {
