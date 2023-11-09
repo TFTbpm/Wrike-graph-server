@@ -172,6 +172,7 @@ app.post("/wrike/*", header("X-Hook-Secret").notEmpty(), (req, res, next) => {
 
     // x-hook-secret is missing:
     if (errors.length != 0) {
+      console.log(errors);
       res.status(400).send();
       return;
     }
