@@ -136,11 +136,18 @@ app.set("trust proxy", 1);
 
 // This takes in raw Wrike body for comparing to value (x-hook-secret) to ensure origin is Wrike
 app.post("/wrike/*", (req, res, next) => {
-  rawRequestBody = "";
-  req.on("data", (chunk) => {
-    rawRequestBody += chunk;
-  });
-  next();
+  try {
+    rawRequestBody = "";
+    req.on("data", (chunk) => {
+      rawRequestBody += chunk;
+    });
+    next();
+  } catch (error) {
+    console.error(
+      `There was an error parsing the raw data: ${error}\n ${error.stack}`
+    );
+    res.status(500).send();
+  }
 });
 
 app.use(express.json());
@@ -148,47 +155,60 @@ app.use(express.json());
 // data validation for x-hook-secret removes all hits on endpoint without header
 app.post("/wrike/*", header("X-Hook-Secret").notEmpty(), (req, res, next) => {
   const wrikeHookSecret = process.env.wrike_hook_secret;
+  const errors = validationResult(req).errors;
   const calculatedHash = crypto
     .createHmac("sha256", wrikeHookSecret)
     .update(rawRequestBody)
     .digest("hex");
-  const errors = validationResult(req).errors;
 
-  // Initializes Wrike webhook
-  if (req.body["requestType"] === "WebHook secret verification") {
-    // Change
-    console.log(calculatedHash);
-    res.status(200).set("X-Hook-Secret", calculatedHash).send();
-    return;
-  }
+  try {
+    // Initializes Wrike webhook
+    if (req.body["requestType"] === "WebHook secret verification") {
+      // Change
+      console.log(calculatedHash);
+      res.status(200).set("X-Hook-Secret", calculatedHash).send();
+      return;
+    }
 
-  // x-hook-secret is missing:
-  if (errors.length != 0) {
-    res.status(400).send();
-    return;
-  }
+    // x-hook-secret is missing:
+    if (errors.length != 0) {
+      res.status(400).send();
+      return;
+    }
 
-  const xHookSecret = req.get("X-Hook-Secret");
-  // This checks if the xhooksecret used the correct secret key
+    const xHookSecret = req.get("X-Hook-Secret");
+    // This checks if the xhooksecret used the correct secret key
 
-  // Wrong secret value:
-  if (xHookSecret !== calculatedHash) {
-    res.status(401).send(`Invalid hash`);
-    console.log(
-      `body: ${req.body} \n raw: ${rawRequestBody} \n xhooksecret: ${xHookSecret} \n calculated: ${calculatedHash}`
+    // Wrong secret value:
+    if (xHookSecret !== calculatedHash) {
+      res.status(401).send(`Invalid hash`);
+      console.log(
+        `body: ${req.body} \n raw: ${rawRequestBody} \n xhooksecret: ${xHookSecret} \n calculated: ${calculatedHash}`
+      );
+      return;
+    }
+
+    next();
+  } catch (error) {
+    console.error(
+      `there was an error valdiating the source of the request: ${error} \n ${error.stack}`
     );
-    return;
   }
-  next();
 });
 
 app.post("/wrike/rfq", (req, res) => {
-  console.log(req.body);
-  res.status(200).send();
-  // take in data from post and parse
-  // find id in mongodb
-  // get user id from list
-  // send to process.env.graph_power_automate_uri
+  try {
+    console.log(req.body);
+    res.status(200).send();
+    // take in data from post and parse
+    // find id in mongodb
+    // get user id from list
+    // send to process.env.graph_power_automate_uri
+  } catch (error) {
+    console.error(
+      `There was an error processing the rfq: ${error}\n ${error.stack}`
+    );
+  }
 });
 
 // just used to verify the server is running
