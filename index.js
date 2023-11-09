@@ -135,7 +135,7 @@ app.use(limiter);
 app.set("trust proxy", 1);
 
 // This takes in raw Wrike body for comparing to value (x-hook-secret) to ensure origin is Wrike
-app.post("/wrike", (req, res, next) => {
+app.post("/wrike/*", (req, res, next) => {
   rawRequestBody = "";
   req.on("data", (chunk) => {
     rawRequestBody += chunk;
@@ -145,8 +145,8 @@ app.post("/wrike", (req, res, next) => {
 
 app.use(express.json());
 
-// data validation for x-hook-secret removes all hits on endpoint without header without needing response
-app.post("/wrike", header("X-Hook-Secret").notEmpty(), (req, res) => {
+// data validation for x-hook-secret removes all hits on endpoint without header
+app.post("/wrike/*", header("X-Hook-Secret").notEmpty(), (req, res, next) => {
   const wrikeHookSecret = process.env.wrike_hook_secret;
   const errors = validationResult(req).errors;
 
@@ -177,28 +177,17 @@ app.post("/wrike", header("X-Hook-Secret").notEmpty(), (req, res) => {
       `body: ${req.body} \n raw: ${rawRequestBody} \n xhooksecret: ${xHookSecret} \n calculated: ${calculatedHash}`
     );
     return;
-    //  hash of the data was already sent:
-  } else if (
-    crypto
-      .createHash("sha256")
-      .update(JSON.stringify(req.body))
-      .digest("hex") == wrikeHistory
-  ) {
-    res.status(202).send("already updated");
-    console.log("Already updated");
-    return;
-    // send the data:
-  } else {
-    res.status(200).send("good");
-    wrikeHistory = crypto
-      .createHash("sha256")
-      .update(JSON.stringify(req.body))
-      .digest("hex");
-    console.log(
-      `xhooksecret ${xHookSecret} matches calculated ${calculatedHash}`
-    );
-    return;
   }
+  next();
+});
+
+app.post("/wrike/rfq", (req, res) => {
+  console.log(req.body);
+  res.status(200).send();
+  // take in data from post and parse
+  // find id in mongodb
+  // get user id from list
+  // send to process.env.graph_power_automate_uri
 });
 
 // just used to verify the server is running
@@ -337,7 +326,6 @@ app.post("/graph/datasheets", async (req, res) => {
 app.post("/graph/order", async (req, res) => {
   let currentHistory = [];
   const accessData = await graphAccessData();
-  let datasheetData;
   try {
     orderData = await getOrders(
       process.env.graph_site_id_sales,
