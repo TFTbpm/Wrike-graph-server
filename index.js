@@ -148,6 +148,10 @@ app.use(express.json());
 // data validation for x-hook-secret removes all hits on endpoint without header
 app.post("/wrike/*", header("X-Hook-Secret").notEmpty(), (req, res, next) => {
   const wrikeHookSecret = process.env.wrike_hook_secret;
+  const calculatedHash = crypto
+    .createHmac("sha256", wrikeHookSecret)
+    .update(rawRequestBody)
+    .digest("hex");
   const errors = validationResult(req).errors;
 
   // Initializes Wrike webhook
@@ -166,10 +170,6 @@ app.post("/wrike/*", header("X-Hook-Secret").notEmpty(), (req, res, next) => {
 
   const xHookSecret = req.get("X-Hook-Secret");
   // This checks if the xhooksecret used the correct secret key
-  const calculatedHash = crypto
-    .createHmac("sha256", wrikeHookSecret)
-    .update(rawRequestBody)
-    .digest("hex");
 
   // Wrong secret value:
   if (xHookSecret !== calculatedHash) {
