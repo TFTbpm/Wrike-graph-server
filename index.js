@@ -150,6 +150,14 @@ app.post("/wrike/*", header("X-Hook-Secret").notEmpty(), (req, res, next) => {
   const wrikeHookSecret = process.env.wrike_hook_secret;
   const errors = validationResult(req).errors;
 
+  // Initializes Wrike webhook
+  if (req.body["requestType"] === "WebHook secret verification") {
+    // Change
+    console.log(calculatedHash);
+    res.status(200).set("X-Hook-Secret", calculatedHash).send();
+    return;
+  }
+
   // x-hook-secret is missing:
   if (errors.length != 0) {
     res.status(400).send();
@@ -162,13 +170,6 @@ app.post("/wrike/*", header("X-Hook-Secret").notEmpty(), (req, res, next) => {
     .createHmac("sha256", wrikeHookSecret)
     .update(rawRequestBody)
     .digest("hex");
-
-  // Initializes Wrike webhook
-  if (req.body["requestType"] === "WebHook secret verification") {
-    // Change
-    res.status(200).set("X-Hook-Secret", calculatedHash).send();
-    return;
-  }
 
   // Wrong secret value:
   if (xHookSecret !== calculatedHash) {
