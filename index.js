@@ -12,6 +12,7 @@ const rateLimit = require("express-rate-limit");
 const getRFQData = require("./modules/graph/rfq");
 const getDatasheets = require("./modules/graph/datasheet");
 const getOrders = require("./modules/graph/order");
+const { MongoClient } = require("mongodb");
 
 // dotenv config
 config();
@@ -203,12 +204,72 @@ app.post("/wrike/*", header("X-Hook-Secret").notEmpty(), (req, res, next) => {
 
 app.post("/wrike/rfq", (req, res) => {
   try {
-    console.log(req.body);
-    res.status(200).send();
-    // take in data from post and parse
+    const client = new MongoClient(process.env.mongoURL);
+    const db = client.db(process.env.mongoDB);
+    const wrikeTitles = db.collection(process.env.mongoRFQCollection);
     // find id in mongodb
+    // take in data from post and parse
+    req.body.forEach(async (hook) => {
+      const mongoEntry = await wrikeTitles.findOne({ id: hook.taskId });
+
+      if (hook.addedResponsibles) {
+        const foundKey = Object.keys(graphIDToWrikeID).find(
+          (key) => graphIDToWrikeID[key] === hook.addedResponsibles[0]
+        );
+
+        if (!foundKey) {
+          console.log(`id is not stored! ID: ${hook.removedResponsibles}`);
+          return;
+        }
+
+        fetch(process.env.graph_power_automate_uri, {
+          method: "PATCH",
+          body: JSON.stringify({
+            resource: "RFQ",
+            assigneeID: foundKey,
+            id: mongoEntry.graphID,
+          }),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }).then((response) => {
+          if (response.ok) {
+            console.log("added user information for rfq");
+          }
+        });
+      } else if (hook.removedResponsibles) {
+        const foundKey = Object.keys(graphIDToWrikeID).find(
+          (key) => graphIDToWrikeID[key] === hook.removedResponsibles[0]
+        );
+
+        if (!foundKey) {
+          console.log(`id is not stored! ID: ${hook.removedResponsibles}`);
+          return;
+        }
+
+        fetch(process.env.graph_power_automate_uri, {
+          method: "PATCH",
+          body: JSON.stringify({
+            resource: "RFQ",
+            assigneeID: foundKey,
+            id: mongoEntry.graphID,
+          }),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }).then((response) => {
+          if (response.ok) {
+            console.log("removed user information for rfq");
+          }
+        });
+      } else {
+        console.log("nada");
+      }
+    });
+
     // get user id from list
     // send to process.env.graph_power_automate_uri
+    res.status(200).send();
   } catch (error) {
     console.error(
       `There was an error processing the rfq: ${error}\n ${error.stack}`

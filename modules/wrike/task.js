@@ -270,7 +270,8 @@ async function processRFQ(rfq) {
     ID: ${rfq.id}
     `;
 
-  const title = await wrikeTitles.findOne({ title: rfq.title });
+  const title = await wrikeTitles.findOne({ title: rfq.id });
+  console.log(title);
 
   // if this title hasn't been put into the system yet:
   if (title === null) {
@@ -314,7 +315,11 @@ async function processRFQ(rfq) {
         null
       ).then((data) => {
         try {
-          wrikeTitles.insertOne({ title: rfq.title, id: data.data[0].id });
+          wrikeTitles.insertOne({
+            title: rfq.title,
+            id: data.data[0].id,
+            graphID: rfq.id,
+          });
         } catch (e) {
           console.log(`error with inserting rfq: ${e}`);
         }
@@ -369,6 +374,10 @@ async function processRFQ(rfq) {
         null,
         [...(rfq.assinged == null ? Object.values(graphIDToWrikeID) : [])]
       );
+      // wrikeTitles.findOneAndUpdate(
+      //   { _id: title._id },
+      //   { $set: { graphID: rfq.id } }
+      // );
       console.log("not new, but modified");
     } catch (e) {
       console.log(`error updating rfq: ${e}`);
