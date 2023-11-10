@@ -113,7 +113,6 @@ async function createTask(
   }
 }
 
-// TODO: will need to add title here for orders (title changes but PO doesn't)
 async function modifyTask(
   taskId,
   folderId,
@@ -129,7 +128,8 @@ async function modifyTask(
   customFields,
   customStatus,
   fields,
-  removeResponsibles
+  removeResponsibles,
+  title
 ) {
   let URI;
   const maxRetries = 3;
@@ -160,6 +160,7 @@ async function modifyTask(
         customStatus: customStatus || null,
         fields: fields || null,
         removeResponsibles: removeResponsibles || null,
+        title: title || null,
       };
       const queryParams = [];
 
@@ -490,7 +491,7 @@ async function processOrder(order) {
   const client = new MongoClient(process.env.mongoURL);
   const db = client.db(process.env.mongoDB);
   const wrikeTitles = db.collection(process.env.mongoOrderCollection);
-  const title = await wrikeTitles.findOne({ title: order.title });
+  const title = await wrikeTitles.findOne({ graphID: order.id });
   console.log(title);
   if (title == null) {
     try {
@@ -498,14 +499,15 @@ async function processOrder(order) {
         order.title,
         process.env.wrike_folder_orders,
         process.env.wrike_perm_access_token,
+        order.description,
+        // TODO: get statuses
+        null,
+        null,
+        // TODO: figure start date (basedo n priority? tier system?)
         null,
         null,
         null,
-        null,
-        null,
-        null,
-        null,
-        null,
+        order.author ? [order.author] : null,
         null,
         null,
         null
@@ -513,8 +515,8 @@ async function processOrder(order) {
         console.log("new order");
         try {
           wrikeTitles.insertOne({
-            title: order.poNumber,
             id: data.data[0].id,
+            graphID: order.id,
           });
         } catch (e) {
           throw new Error(`Error while inserting order: ${e}`);
@@ -530,18 +532,19 @@ async function processOrder(order) {
         taskID,
         process.env.wrike_folder_orders,
         process.env.wrike_perm_access_token,
+        order.description,
         null,
         null,
         null,
         null,
         null,
+        order.author ? [order.author] : null,
         null,
         null,
         null,
         null,
-        null,
-        null,
-        null
+        [...(order.author == null ? Object.values(graphIDToWrikeID) : [])],
+        order.title
       ).then((data) => {
         console.log("updated order");
       });

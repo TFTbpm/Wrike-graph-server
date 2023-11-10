@@ -16,12 +16,14 @@ async function getRFQData(site_id, list_id, access_token) {
 async function modifyGraphRFQ(hooks, graphIDToWrikeID) {
   try {
     let wrikeTitles;
+    let users;
 
     // Connect to mongo
     try {
       const client = new MongoClient(process.env.mongoURL);
       const db = client.db(process.env.mongoDB);
       wrikeTitles = db.collection(process.env.mongoRFQCollection);
+      users = db.collection(process.env.mongoUserColection);
     } catch (error) {
       throw new Error(`there was an issue accessing Mongo: ${error}`);
     }
@@ -33,6 +35,7 @@ async function modifyGraphRFQ(hooks, graphIDToWrikeID) {
       // Get mongo item of task ID
       try {
         mongoEntry = await wrikeTitles.findOne({ id: hook.taskId });
+        console.log(mongoEntry);
       } catch (error) {
         throw new Error(
           `there was an issue fetching the mongo entry: ${error}`
@@ -41,13 +44,16 @@ async function modifyGraphRFQ(hooks, graphIDToWrikeID) {
 
       // if adding an assignee
       if (hook.addedResponsibles) {
+        // get graph id from wrike id
         const foundKey = Object.keys(graphIDToWrikeID).find(
           (key) => graphIDToWrikeID[key] === hook.addedResponsibles[0]
         );
+        const assignee = await users.findOne({ id: foundKey });
+        console.log(assignee);
 
-        if (!foundKey) {
-          console.log(`id is not stored! ID: ${hook.removedResponsibles}`);
-          continue; // Continue to the next iteration
+        if (!assignee) {
+          console.log(`id is not stored! ID: ${hook.addedResponsibles}`);
+          continue;
         }
 
         // send data to power automate
@@ -56,8 +62,9 @@ async function modifyGraphRFQ(hooks, graphIDToWrikeID) {
             method: "PATCH",
             body: JSON.stringify({
               resource: "RFQ",
-              assigneeID: foundKey,
-              id: mongoEntry.graphID,
+              assignee: assignee.name,
+              id: parseInt(mongoEntry.graphID),
+              type: "ADD",
             }),
             headers: {
               "Content-Type": "application/json",
@@ -73,43 +80,52 @@ async function modifyGraphRFQ(hooks, graphIDToWrikeID) {
           );
         }
       } else if (hook.removedResponsibles) {
+        // get graph id from wrike id
         const foundKey = Object.keys(graphIDToWrikeID).find(
           (key) => graphIDToWrikeID[key] === hook.removedResponsibles[0]
         );
+        const assignee = await users.findOne({ id: foundKey });
 
-        if (!foundKey) {
+        console.log(assignee);
+
+        if (!assignee) {
           console.log(`id is not stored! ID: ${hook.removedResponsibles}`);
-          continue; // Continue to the next iteration
+          continue;
         }
 
-        const response = await fetch(process.env.graph_power_automate_uri, {
-          method: "PATCH",
-          body: JSON.stringify({
-            resource: "RFQ",
-            assigneeID: foundKey,
-            id: mongoEntry.graphID,
-          }),
-          headers: {
-            "Content-Type": "application/json",
-          },
-        });
-        if (response.ok) {
-          console.log("removed user information for rfq");
-          return true;
+        try {
+          const response = await fetch(process.env.graph_power_automate_uri, {
+            method: "PATCH",
+            body: JSON.stringify({
+              resource: "RFQ",
+              assignee: assignee.name,
+              id: parseInt(mongoEntry.graphID),
+              type: "REMOVE",
+            }),
+            headers: {
+              "Content-Type": "application/json",
+            },
+          });
+          if (response.ok) {
+            console.log("removed user information for rfq");
+            return true;
+          }
+        } catch (error) {
+          throw new Error(`there was an error removing responsbles: ${error}`);
         }
       } else {
-        console.log("nada");
+        console.log("Unexpected hook:", hook);
         return false;
       }
     }
-
-    // If you reach this point, it means no items matched the conditions
-    return false;
+    console.log("nothin");
   } catch (error) {
     console.error(
       `There was an error processing the rfq: ${error}\n ${error.stack}`
     );
-    return false;
+    throw new Error(
+      `There was an error processing the rfq: ${error}\n ${error.stack}`
+    );
   }
 }
 

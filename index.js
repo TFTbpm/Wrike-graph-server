@@ -202,7 +202,13 @@ app.post("/wrike/*", header("X-Hook-Secret").notEmpty(), (req, res, next) => {
 });
 
 app.post("/wrike/rfq", async (req, res) => {
-  const result = await modifyGraphRFQ(req.body, graphIDToWrikeID);
+  let result;
+  try {
+    result = await modifyGraphRFQ(req.body, graphIDToWrikeID);
+  } catch (e) {
+    console.log(e);
+  }
+
   if (result) {
     console.log("modified RFQ");
     res.status(200).send();
@@ -359,6 +365,13 @@ app.post("/graph/order", async (req, res) => {
   }
   try {
     orderData.forEach((order) => {
+      const desc = `URL: ${order.fields._dlc_DocIdUrl.url || "none"} 
+      <br> Entered date: ${order.createdDateTime} 
+      <br> PO number: ${order.fields.PONumber || "none"} 
+      <br> SO number: ${order.fields.SONumber || "none"}
+      <br> Customer: ${order.fields.CustomerName || "none"}
+      <br> Author: ${graphIDToWrikeID[order.fields.AuthorLookupId] || "null"}`;
+
       currentHistory.push({
         title: order.fields.FileLeafRef || null,
         url: order.fields._dlc_DocIdUrl.url || null,
@@ -369,6 +382,8 @@ app.post("/graph/order", async (req, res) => {
         shipToSite: order.fields.ShipToSite || null,
         poNumber: order.fields.PONumber || null,
         soNumber: order.fields.SONumber || null,
+        id: order.fields.id,
+        description: desc,
       });
     });
   } catch (e) {
