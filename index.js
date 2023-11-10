@@ -222,7 +222,7 @@ app.post("/wrike/rfq", (req, res) => {
           return;
         }
 
-        fetch(process.env.graph_power_automate_uri, {
+        const response = await fetch(process.env.graph_power_automate_uri, {
           method: "PATCH",
           body: JSON.stringify({
             resource: "RFQ",
@@ -232,11 +232,10 @@ app.post("/wrike/rfq", (req, res) => {
           headers: {
             "Content-Type": "application/json",
           },
-        }).then((response) => {
-          if (response.ok) {
-            console.log("added user information for rfq");
-          }
         });
+        if (response.ok) {
+          console.log("added user information for rfq");
+        }
       } else if (hook.removedResponsibles) {
         const foundKey = Object.keys(graphIDToWrikeID).find(
           (key) => graphIDToWrikeID[key] === hook.removedResponsibles[0]
@@ -247,7 +246,7 @@ app.post("/wrike/rfq", (req, res) => {
           return;
         }
 
-        fetch(process.env.graph_power_automate_uri, {
+        const response = await fetch(process.env.graph_power_automate_uri, {
           method: "PATCH",
           body: JSON.stringify({
             resource: "RFQ",
@@ -257,18 +256,15 @@ app.post("/wrike/rfq", (req, res) => {
           headers: {
             "Content-Type": "application/json",
           },
-        }).then((response) => {
-          if (response.ok) {
-            console.log("removed user information for rfq");
-          }
         });
+        if (response.ok) {
+          console.log("removed user information for rfq");
+        }
       } else {
         console.log("nada");
       }
     });
 
-    // get user id from list
-    // send to process.env.graph_power_automate_uri
     res.status(200).send();
   } catch (error) {
     console.error(

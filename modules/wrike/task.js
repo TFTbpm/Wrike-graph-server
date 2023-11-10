@@ -270,7 +270,7 @@ async function processRFQ(rfq) {
     ID: ${rfq.id}
     `;
 
-  const title = await wrikeTitles.findOne({ title: rfq.id });
+  const title = await wrikeTitles.findOne({ id: rfq.id });
   console.log(title);
 
   // if this title hasn't been put into the system yet:
