@@ -213,7 +213,7 @@ app.post("/wrike/rfq", async (req, res) => {
     res.status(200).send();
   } else {
     console.log("failed to modify RFQ");
-    res.status(500).send();
+    res.status(202).send();
   }
 });
 
