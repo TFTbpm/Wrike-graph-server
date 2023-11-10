@@ -62,6 +62,12 @@ async function modifyGraphRFQ(hooks, graphIDToWrikeID) {
           continue;
         }
 
+        console.log({
+          resource: "RFQ",
+          assignee: assignee.name,
+          id: parseInt(mongoEntry.graphID),
+          type: "REMOVE",
+        });
         // send data to power automate
         try {
           const response = await fetch(process.env.graph_power_automate_uri, {
@@ -104,6 +110,13 @@ async function modifyGraphRFQ(hooks, graphIDToWrikeID) {
           console.log(`id is not stored! ID: ${hook.removedResponsibles}`);
           continue;
         }
+
+        console.log({
+          resource: "RFQ",
+          assignee: assignee.name,
+          id: parseInt(mongoEntry.graphID),
+          type: "REMOVE",
+        });
 
         try {
           const response = await fetch(process.env.graph_power_automate_uri, {
