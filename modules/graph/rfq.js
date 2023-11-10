@@ -50,12 +50,15 @@ async function modifyGraphRFQ(hooks, graphIDToWrikeID) {
         );
 
         if (!foundKey) {
-          console.log(`key is not stored locally! ${hook.removedResponsibles}`);
+          console.log(`id is not stored! ID: ${hook.addedResponsibles}`);
           continue;
         }
 
+        console.log("Found Key:", foundKey);
+
         const assignee = await users.findOne({ id: foundKey });
-        console.log(assignee);
+
+        console.log("Assignee:", assignee.name);
 
         if (!assignee) {
           console.log(`id is not stored! ID: ${hook.addedResponsibles}`);
@@ -98,13 +101,15 @@ async function modifyGraphRFQ(hooks, graphIDToWrikeID) {
         );
 
         if (!foundKey) {
-          console.log(`key is not stored locally! ${hook.removedResponsibles}`);
+          console.log(`id is not stored! ID: ${hook.removedResponsibles}`);
           continue;
         }
 
+        console.log("Found Key:", foundKey);
+
         const assignee = await users.findOne({ id: foundKey });
 
-        console.log(assignee);
+        console.log("Assignee:", assignee);
 
         if (!assignee) {
           console.log(`id is not stored! ID: ${hook.removedResponsibles}`);

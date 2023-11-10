@@ -18,7 +18,6 @@ config();
 // This is hashed to verify the source
 let rawRequestBody = "";
 // This is used to verify we haven't already sent that info (low latency check)
-let wrikeHistory = [];
 // TODO: add in a handler for when marked for completed to remove from this array
 
 // TODO: make a function/module to update these
