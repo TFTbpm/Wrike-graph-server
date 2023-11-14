@@ -251,6 +251,7 @@ async function getTasks(taskId, access_token) {
   }
 }
 
+// TODO: update the given RFQ if found and replace title, check for both title and rfq.id  (ln 275)
 async function processRFQ(rfq) {
   const client = new MongoClient(process.env.mongoURL);
   const db = client.db(process.env.mongoDB);
@@ -313,14 +314,18 @@ async function processRFQ(rfq) {
         rfq.status,
         null
       ).then((data) => {
-        try {
-          wrikeTitles.insertOne({
-            title: rfq.title,
-            id: data.data[0].id,
-            graphID: rfq.id,
-          });
-        } catch (e) {
-          console.log(`error with inserting rfq: ${e}`);
+        if (data) {
+          try {
+            wrikeTitles.insertOne({
+              title: rfq.title,
+              id: data.data[0].id,
+              graphID: rfq.id,
+            });
+          } catch (e) {
+            console.log(`error with inserting rfq: ${e}`);
+          }
+        } else {
+          console.log("data undefined!");
         }
       });
       console.log("is new");
@@ -336,7 +341,6 @@ async function processRFQ(rfq) {
       modifyTask(
         taskID,
         process.env.wrike_folder_rfq,
-
         process.env.wrike_perm_access_token,
         descriptionStr,
         null,
@@ -371,12 +375,13 @@ async function processRFQ(rfq) {
           : null,
         rfq.status,
         null,
-        [...(rfq.assinged == null ? Object.values(graphIDToWrikeID) : [])]
+        [...(rfq.assinged == null ? Object.values(graphIDToWrikeID) : [])],
+        rfq.title
       );
-      // wrikeTitles.findOneAndUpdate(
-      //   { _id: title._id },
-      //   { $set: { graphID: rfq.id } }
-      // );
+      wrikeTitles.findOneAndUpdate(
+        { _id: title._id },
+        { $set: { title: rfq.title } }
+      );
       console.log("not new, but modified");
     } catch (e) {
       console.log(`error updating rfq: ${e}`);

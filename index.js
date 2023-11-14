@@ -351,6 +351,7 @@ app.post("/graph/datasheets", async (req, res) => {
 });
 
 app.post("/graph/order", async (req, res) => {
+  // Graph sends this once a new order is created
   let currentHistory = [];
   const accessData = await graphAccessData();
   try {
