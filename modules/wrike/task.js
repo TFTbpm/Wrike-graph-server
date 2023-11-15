@@ -268,7 +268,14 @@ async function processRFQ(rfq, wrikeTitles) {
     ID: ${rfq.id}
     `;
 
-  const title = await wrikeTitles.findOne({ graphID: rfq.id });
+  let title;
+  try {
+    await performMongoOperation(async () => {
+      title = await wrikeTitles.findOne({ graphID: rfq.id });
+    });
+  } catch (error) {
+    console.log(`MongoDB operation failed after multiple retries: ${error}`);
+  }
   // if this title hasn't been put into the system yet:
   if (title === null) {
     try {
@@ -312,10 +319,12 @@ async function processRFQ(rfq, wrikeTitles) {
       ).then((data) => {
         if (data) {
           try {
-            wrikeTitles.insertOne({
-              title: rfq.title,
-              id: data.data[0].id,
-              graphID: rfq.id,
+            performMongoOperation(async () => {
+              wrikeTitles.insertOne({
+                title: rfq.title,
+                id: data.data[0].id,
+                graphID: rfq.id,
+              });
             });
           } catch (e) {
             console.log(`error with inserting rfq: ${e} \n data: ${data}`);
@@ -374,10 +383,13 @@ async function processRFQ(rfq, wrikeTitles) {
         [...(rfq.assinged == null ? Object.values(graphIDToWrikeID) : [])],
         rfq.title
       );
-      wrikeTitles.findOneAndUpdate(
-        { _id: title._id },
-        { $set: { title: rfq.title } }
-      );
+      performMongoOperation(async () => {
+        wrikeTitles.findOneAndUpdate(
+          { _id: title._id },
+          { $set: { title: rfq.title } }
+        );
+      });
+
       console.log("not new, but modified");
     } catch (e) {
       console.log(`error updating rfq: ${e}`);
@@ -557,3 +569,21 @@ module.exports = {
   processDataSheet,
   processOrder,
 };
+
+async function performMongoOperation(operation, retries = 0) {
+  const MAX_RETRIES = 3;
+  const RETRY_DELAY_MS = 1000;
+  try {
+    return await operation();
+  } catch (error) {
+    if (retries < MAX_RETRIES) {
+      console.log(
+        `MongoDB operation failed. Retrying (${retries + 1}/${MAX_RETRIES})...`
+      );
+      await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
+      return performMongoOperation(operation, retries + 1);
+    } else {
+      throw error; // Max retries reached, propagate the error
+    }
+  }
+}
