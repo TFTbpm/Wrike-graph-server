@@ -26,6 +26,7 @@ async function getOrders(site_id, list_id, access_token) {
   const filteredItems = allItems.slice(0, 5);
   const endTime = performance.now();
   console.log(`orders retrieved: (${(endTime - startTime) / 1000}s)`);
+  console.log(filteredItems);
   return filteredItems;
 }
 
