@@ -12,7 +12,18 @@ async function getOrders(site_id, list_id, access_token) {
   let allItems = [];
   let page = 1;
   while (data["@odata.nextLink"]) {
-    response = await fetch(data["@odata.nextLink"], requestOptions);
+    try {
+      response = await fetch(data["@odata.nextLink"], requestOptions);
+    } catch (error) {
+      console.error(
+        `there was an error fetching the next orders page (${i}): \n ${error}`
+      );
+    }
+    if (!response.ok) {
+      console.error(`the response from orders failed at page ${i}: \n
+      status: ${response.status} \n
+      ${response.statusText}`);
+    }
     data = await response.json();
     if (page > 6) {
       allItems.push(...data.value);
@@ -23,10 +34,11 @@ async function getOrders(site_id, list_id, access_token) {
     (a, b) =>
       new Date(b.lastModifiedDateTime) - new Date(a.lastModifiedDateTime)
   );
+  // console.log(allItems.length);
   const filteredItems = allItems.slice(0, 5);
   const endTime = performance.now();
   console.log(`orders retrieved: (${(endTime - startTime) / 1000}s)`);
-  console.log(filteredItems);
+  // console.log(filteredItems);
   return filteredItems;
 }
 
