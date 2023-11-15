@@ -8,6 +8,11 @@ async function getOrders(site_id, list_id, access_token) {
     },
   };
   let response = await fetch(url, requestOptions);
+  if (!response.ok) {
+    console.error(`the initial response for orders failed! \n
+    status: ${response.status} \n
+    ${response.statusText}`);
+  }
   let data = await response.json();
   let allItems = [];
   let page = 1;
@@ -34,10 +39,11 @@ async function getOrders(site_id, list_id, access_token) {
     (a, b) =>
       new Date(b.lastModifiedDateTime) - new Date(a.lastModifiedDateTime)
   );
-  console.log(allItems.length);
   const filteredItems = allItems.slice(0, 5);
   const endTime = performance.now();
-  console.log(`orders retrieved: (${(endTime - startTime) / 1000}s)`);
+  console.log(
+    `${allItems.length} orders retrieved: (${(endTime - startTime) / 1000}s)`
+  );
   // console.log(filteredItems);
   return filteredItems;
 }
