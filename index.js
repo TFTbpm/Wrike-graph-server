@@ -12,6 +12,7 @@ const rateLimit = require("express-rate-limit");
 const { getRFQData, modifyGraphRFQ } = require("./modules/graph/rfq");
 const getDatasheets = require("./modules/graph/datasheet");
 const getOrders = require("./modules/graph/order");
+const { MongoClient } = require("mongodb");
 
 // dotenv config
 config();
@@ -286,7 +287,14 @@ app.post("/graph/rfq", async (req, res) => {
   });
 
   try {
-    await Promise.all(currentHistory.map(processRFQ));
+    const client = new MongoClient(process.env.mongoURL);
+    const db = client.db(process.env.mongoDB);
+    const wrikeTitles = db.collection(process.env.mongoRFQCollection);
+    await Promise.all(
+      currentHistory.map(async (rfq) => {
+        await processRFQ(rfq, wrikeTitles);
+      })
+    );
   } catch (e) {
     console.log(`error mapping rfq: ${e}`);
   }
@@ -342,7 +350,14 @@ app.post("/graph/datasheets", async (req, res) => {
     );
   }
   try {
-    await Promise.all(currentHistory.map(processDataSheet));
+    client = new MongoClient(process.env.mongoURL);
+    const db = client.db(process.env.mongoDB);
+    const wrikeTitles = db.collection(process.env.mongoDatasheetCollection);
+    await Promise.all(
+      currentHistory.map(async (ds) => {
+        await processDataSheet(ds, wrikeTitles);
+      })
+    );
   } catch (e) {
     console.log(`error mapping datasheets: ${e}`);
   }
@@ -390,7 +405,14 @@ app.post("/graph/order", async (req, res) => {
     console.error(`there was an error iterating order: ${e}`);
   }
   try {
-    await Promise.all(currentHistory.map(processOrder));
+    const client = new MongoClient(process.env.mongoURL);
+    const db = client.db(process.env.mongoDB);
+    const wrikeTitles = db.collection(process.env.mongoOrderCollection);
+    await Promise.all(
+      currentHistory.map(async (or) => {
+        await processOrder(or, wrikeTitles);
+      })
+    );
   } catch (e) {
     console.error(`there was an error mapping order: ${e} ${e.stack}`);
   }

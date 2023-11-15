@@ -252,11 +252,7 @@ async function getTasks(taskId, access_token) {
 }
 
 // TODO: update the given RFQ if found and replace title, check for both title and rfq.id  (ln 275)
-async function processRFQ(rfq) {
-  const client = new MongoClient(process.env.mongoURL);
-  const db = client.db(process.env.mongoDB);
-  const wrikeTitles = db.collection(process.env.mongoRFQCollection);
-
+async function processRFQ(rfq, wrikeTitles) {
   // TODO: Move most of these to custom fields
 
   const descriptionStr = `Title: (RFQ) ${rfq.title} <br>
@@ -322,7 +318,7 @@ async function processRFQ(rfq) {
               graphID: rfq.id,
             });
           } catch (e) {
-            console.log(`error with inserting rfq: ${e}`);
+            console.log(`error with inserting rfq: ${e} \n data: ${data}`);
           }
         } else {
           console.log("data undefined!");
@@ -389,11 +385,7 @@ async function processRFQ(rfq) {
   }
 }
 
-async function processDataSheet(datasheet) {
-  client = new MongoClient(process.env.mongoURL);
-  const db = client.db(process.env.mongoDB);
-  const wrikeTitles = db.collection(process.env.mongoDatasheetCollection);
-
+async function processDataSheet(datasheet, wrikeTitles) {
   const title = await wrikeTitles.findOne({ title: datasheet.title });
   if (title === null) {
     try {
@@ -492,10 +484,7 @@ async function processDataSheet(datasheet) {
   }
 }
 
-async function processOrder(order) {
-  const client = new MongoClient(process.env.mongoURL);
-  const db = client.db(process.env.mongoDB);
-  const wrikeTitles = db.collection(process.env.mongoOrderCollection);
+async function processOrder(order, wrikeTitles) {
   const title = await wrikeTitles.findOne({ graphID: order.id });
   console.log(title);
   if (title == null) {
