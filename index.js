@@ -107,6 +107,53 @@ const dsCustomStatuses = [
     name: "Routed",
   },
 ];
+const orderCustomStatuses = [
+  {
+    id: "IEAF5SOTJMEGHU32",
+    name: "Recieved",
+    standardName: false,
+    color: "Blue",
+    standard: false,
+    group: "Active",
+    hidden: false,
+  },
+  {
+    id: "IEAF5SOTJMEGHU4E",
+    name: "Active",
+    standardName: true,
+    color: "DarkCyan",
+    standard: false,
+    group: "Active",
+    hidden: false,
+  },
+  {
+    id: "IEAF5SOTJMEGHU33",
+    name: "Completed",
+    standardName: true,
+    color: "Green",
+    standard: false,
+    group: "Completed",
+    hidden: false,
+  },
+  {
+    id: "IEAF5SOTJMEGHU4Q",
+    name: "Deferred",
+    standardName: true,
+    color: "Indigo",
+    standard: false,
+    group: "Deferred",
+    hidden: false,
+  },
+  {
+    id: "IEAF5SOTJMEGHU43",
+    name: "Cancelled",
+    standardName: true,
+    color: "Gray",
+    standard: false,
+    group: "Cancelled",
+    hidden: false,
+  },
+];
 const graphRFQPriorityToWrikeImportance = {
   High: "High",
   Medium: "Normal",
@@ -216,6 +263,11 @@ app.post("/wrike/rfq", async (req, res) => {
     console.log("failed to modify RFQ");
     res.status(202).send();
   }
+});
+
+app.post("/wrike/order", async (req, res) => {
+  console.log(req.body);
+  res.status(202).send();
 });
 
 // just used to verify the server is running
