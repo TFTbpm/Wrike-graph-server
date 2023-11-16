@@ -410,7 +410,7 @@ app.post("/graph/order", async (req, res) => {
     const client = new MongoClient(process.env.mongoURL);
     const db = client.db(process.env.mongoDB);
     const wrikeTitles = db.collection(process.env.mongoOrderCollection);
-    Promise.all(
+    await Promise.all(
       currentHistory.map(async (or) => {
         await processOrder(or, wrikeTitles);
       })

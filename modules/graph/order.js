@@ -43,7 +43,7 @@ async function getOrders(site_id, list_id, access_token, skipToken) {
     (a, b) =>
       new Date(b.lastModifiedDateTime) - new Date(a.lastModifiedDateTime)
   );
-  const filteredItems = allItems.slice(0, 5);
+  const filteredItems = allItems.slice(0, 25);
   const endTime = performance.now();
   console.log(
     `${allItems.length} orders retrieved: (${(endTime - startTime) / 1000}s)`
