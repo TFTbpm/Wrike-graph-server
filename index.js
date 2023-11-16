@@ -369,11 +369,13 @@ app.post("/graph/order", async (req, res) => {
   // Graph sends this once a new order is created
   let currentHistory = [];
   const accessData = await graphAccessData();
+  const skipToken = process.env.graph_order_skip_token;
   try {
     orderData = await getOrders(
       process.env.graph_site_id_sales,
       process.env.graph_list_id_order,
-      accessData.access_token
+      accessData.access_token,
+      skipToken
     );
   } catch (e) {
     console.log(`There was an error fetching orders: ${e}`);
@@ -408,7 +410,7 @@ app.post("/graph/order", async (req, res) => {
     const client = new MongoClient(process.env.mongoURL);
     const db = client.db(process.env.mongoDB);
     const wrikeTitles = db.collection(process.env.mongoOrderCollection);
-    await Promise.all(
+    Promise.all(
       currentHistory.map(async (or) => {
         await processOrder(or, wrikeTitles);
       })
