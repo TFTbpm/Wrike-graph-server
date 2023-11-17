@@ -507,7 +507,7 @@ async function processOrder(order, wrikeTitles) {
         process.env.wrike_perm_access_token,
         order.description,
         // TODO: get statuses
-        null,
+        "Completed",
         null,
         // TODO: figure start date (basedo n priority? tier system?)
         null,
@@ -539,7 +539,7 @@ async function processOrder(order, wrikeTitles) {
         process.env.wrike_folder_orders,
         process.env.wrike_perm_access_token,
         order.description,
-        null,
+        "Completed",
         null,
         null,
         null,
