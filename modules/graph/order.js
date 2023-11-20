@@ -54,7 +54,7 @@ async function getOrders(site_id, list_id, access_token, skipToken) {
 
 async function addOrder(data, name, uri, metaData) {
   try {
-    fetch(uri, {
+    await fetch(uri, {
       method: "PATCH",
       body: JSON.stringify({
         resource: "Order",
@@ -68,10 +68,6 @@ async function addOrder(data, name, uri, metaData) {
       },
     });
     console.log("sent");
-    // console.log(await response.text());
-    // const result = await response.json();
-
-    // console.log(result);
     return true;
   } catch (error) {
     console.error(

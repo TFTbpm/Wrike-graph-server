@@ -262,7 +262,7 @@ app.post("/wrike/order", async (req, res) => {
     let orderResult;
 
     try {
-      orderResult = addOrder(
+      orderResult = await addOrder(
         bufferString,
         data.data[0].name,
         process.env.graph_power_automate_uri
