@@ -54,7 +54,7 @@ async function getOrders(site_id, list_id, access_token, skipToken) {
 
 async function addOrder(data, name, uri, metaData) {
   try {
-    const response = await fetch(uri, {
+    fetch(uri, {
       method: "PATCH",
       body: JSON.stringify({
         resource: "Order",
@@ -67,11 +67,7 @@ async function addOrder(data, name, uri, metaData) {
         "Content-Type": "application/json",
       },
     });
-    if (!response.ok) {
-      console.log(
-        `there was an issue with the fetch request: ${response.statusText} \n ${response.status}`
-      );
-    }
+    console.log("sent");
     // console.log(await response.text());
     // const result = await response.json();
 
