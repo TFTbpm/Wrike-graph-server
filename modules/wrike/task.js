@@ -1,5 +1,3 @@
-const { MongoClient } = require("mongodb");
-
 const wrikeCustomFields = {
   Customer: "IEAF5SOTJUAFB2KU",
   Reviewer: "IEAF5SOTJUAE4XCY",
@@ -347,7 +345,7 @@ async function processRFQ(rfq, wrikeTitles) {
         taskID,
         process.env.wrike_folder_rfq,
         process.env.wrike_perm_access_token,
-        descriptionStr,
+        null,
         null,
         rfq.priority,
         rfq.internalDueDate
