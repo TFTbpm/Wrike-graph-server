@@ -52,4 +52,52 @@ async function getOrders(site_id, list_id, access_token, skipToken) {
   return filteredItems;
 }
 
-module.exports = getOrders;
+async function addOrder(
+  site_id,
+  list_id,
+  access_token,
+  skipToken,
+  data,
+  name,
+  uri,
+  metaData
+) {
+  console.log({
+    resource: "Order",
+    id: 0,
+    type: "ADD",
+    data: data,
+    name: name,
+  });
+  try {
+    const response = await fetch(uri, {
+      method: "PATCH",
+      body: JSON.stringify({
+        resource: "Order",
+        id: 0,
+        type: "ADD",
+        data: data,
+        name: name,
+      }),
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+    if (!response.ok) {
+      console.log(
+        `there was an issue with the fetch request: ${response.statusText} \n ${response.status}`
+      );
+    }
+    console.log(await response.text());
+    // const result = await response.json();
+
+    // console.log(result);
+    return true;
+  } catch (error) {
+    console.error(
+      `there was an error adding the order to the SP site: ${error}`
+    );
+  }
+}
+
+module.exports = { getOrders, addOrder };

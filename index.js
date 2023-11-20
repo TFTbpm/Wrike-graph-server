@@ -11,7 +11,8 @@ const graphAccessData = require("./modules/graph/accessToken");
 const rateLimit = require("express-rate-limit");
 const { getRFQData, modifyGraphRFQ } = require("./modules/graph/rfq");
 const getDatasheets = require("./modules/graph/datasheet");
-const getOrders = require("./modules/graph/order");
+const { getOrders, addOrder } = require("./modules/graph/order");
+const getOrderAttachment = require("./modules/wrike/getOrderAttachment");
 const { MongoClient } = require("mongodb");
 
 // dotenv config
@@ -241,9 +242,38 @@ app.post("/wrike/rfq", async (req, res) => {
 });
 
 app.post("/wrike/order", async (req, res) => {
-  console.log(req.body);
+  // console.log(req.body);
   if (req.body[0].status == "Completed") {
     console.log("this status is complete");
+    // get attachment
+    const data = await getOrderAttachment(
+      req.body[0].taskId,
+      process.env.wrike_perm_access_token
+    );
+    const bufferString = data.attachment.toString("base64");
+
+    const accessData = await graphAccessData();
+    // console.log(`\n ${bufferString}\n`);
+
+    // const metaData = {
+    //   poNo:
+    //   poType:
+    //   soNo:
+    //   shipToSite:
+    // }
+    // console.log(data.data[0].name);
+
+    addOrder(
+      process.env.graph_site_id_sales,
+      process.env.graph_list_id_order,
+      accessData.access_token,
+      process.env.graph_order_skip_token,
+      bufferString,
+      data.data[0].name,
+      process.env.graph_power_automate_uri
+      // ,metaData
+    );
+
     // Create a new file in the orders sharepoint list using attachments from wrike
     // ? What if there's more than 2
     // Once it's created add it to the mongodb
