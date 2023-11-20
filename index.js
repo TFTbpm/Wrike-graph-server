@@ -398,13 +398,14 @@ app.post("/graph/datasheets", async (req, res) => {
     datasheetData.value.forEach((datasheet) => {
       currentHistory.push({
         title: `(DS) ${datasheet.fields.Title}` || null,
-        description: `${datasheet.fields.field_2
-          .split("\n")
-          .join(
-            "<br>"
-          )} <br> Link: https://eigoa.sharepoint.com/sites/TFTSales/Lists/Datasheet%20Priority%20List/DispForm.aspx?ID=${
-          datasheet.fields.id
-        }`,
+        // description: `${datasheet.fields.field_2
+        //   .split("\n")
+        //   .join(
+        //     "<br>"
+        //   )} <br> Link: https://eigoa.sharepoint.com/sites/TFTSales/Lists/Datasheet%20Priority%20List/DispForm.aspx?ID=${
+        //   datasheet.fields.id
+        // }`,
+        description: null,
         priority:
           graphDSPriorityToWrikeImportance[datasheet.fields.field_5] ||
           graphDSPriorityToWrikeImportance.Medium,
@@ -510,7 +511,7 @@ app.post("/graph/order", async (req, res) => {
         poNumber: order.fields.PONumber || null,
         soNumber: order.fields.SONumber || null,
         id: order.id,
-        description: desc,
+        description: null,
       });
     }
   } catch (e) {
