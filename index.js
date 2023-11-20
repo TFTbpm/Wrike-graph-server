@@ -242,6 +242,7 @@ app.post("/wrike/rfq", async (req, res) => {
 });
 
 app.post("/wrike/order", async (req, res) => {
+  let start = performance.now();
   // console.log(req.body);
   if (req.body[0].status == "Completed") {
     console.log("this status is complete");
@@ -251,32 +252,47 @@ app.post("/wrike/order", async (req, res) => {
       process.env.wrike_perm_access_token
     );
     const bufferString = data.attachment.toString("base64");
+    const fileHash = crypto
+      .createHash("sha256")
+      .update(data.data[0].name)
+      .digest("hex");
 
-    const accessData = await graphAccessData();
-    // console.log(`\n ${bufferString}\n`);
+    // TODO: add a filter here which checks if the wrike ID
 
-    // const metaData = {
-    //   poNo:
-    //   poType:
-    //   soNo:
-    //   shipToSite:
-    // }
-    // console.log(data.data[0].name);
+    let orderResult;
 
-    addOrder(
-      process.env.graph_site_id_sales,
-      process.env.graph_list_id_order,
-      accessData.access_token,
-      process.env.graph_order_skip_token,
-      bufferString,
-      data.data[0].name,
-      process.env.graph_power_automate_uri
-      // ,metaData
-    );
+    try {
+      orderResult = addOrder(
+        bufferString,
+        data.data[0].name,
+        process.env.graph_power_automate_uri
+      );
+      const client = new MongoClient(process.env.mongoURL);
+      const db = client.db(process.env.mongoDB);
+      const ordersCollection = db.collection(process.env.mongoOrderCollection);
+      const currentOrder = await ordersCollection.findOne({
+        content: fileHash,
+      });
+      if (!currentOrder) {
+        await ordersCollection.insertOne({
+          id: req.body[0].taskId,
+          content: fileHash,
+        });
+      }
+      console.log({
+        id: req.body[0].taskId,
+        content: fileHash,
+      });
+      client.close(); // close the connection after the operation
+    } catch (error) {
+      console.error(
+        `there was an issue connecting to the mongoclient to upload hash and id: ${error}`
+      );
+    }
 
-    // Create a new file in the orders sharepoint list using attachments from wrike
     // ? What if there's more than 2
-    // Once it's created add it to the mongodb
+    let end = performance.now();
+    console.log(`time taken: ${(end - start) / 1000}s`);
   }
   res.status(202).send();
 });
@@ -358,6 +374,7 @@ app.post("/graph/rfq", async (req, res) => {
         await processRFQ(rfq, wrikeTitles);
       })
     );
+    client.close;
   } catch (e) {
     console.log(`error mapping rfq: ${e}`);
   }
@@ -421,6 +438,7 @@ app.post("/graph/datasheets", async (req, res) => {
         await processDataSheet(ds, wrikeTitles);
       })
     );
+    client.close;
   } catch (e) {
     console.log(`error mapping datasheets: ${e}`);
   }
@@ -443,8 +461,37 @@ app.post("/graph/order", async (req, res) => {
   } catch (e) {
     console.log(`There was an error fetching orders: ${e}`);
   }
+
+  let wrikeTitles;
+  let client;
+  // connect to mongo
   try {
-    orderData.forEach((order) => {
+    client = new MongoClient(process.env.mongoURL);
+    const db = client.db(process.env.mongoDB);
+    wrikeTitles = db.collection(process.env.mongoOrderCollection);
+  } catch (error) {
+    console.error(`there was an error connecting to mongo: ${error}`);
+  }
+
+  try {
+    for (let order of orderData) {
+      // console.log(order.createdBy.user.displayName);
+      // ! with the time limit on vercel, there's no other way to know whether it was created by the API or not
+      if (order.createdBy.user.displayName == "System") {
+        console.log("this was created from a Wrike item");
+
+        const fileHash = crypto
+          .createHash("sha256")
+          .update(order.fields.FileLeafRef)
+          .digest("hex");
+        // Get mongo entry for given resource id
+        wrikeTitles.findOneAndUpdate(
+          { content: fileHash },
+          { $set: { graphID: order.id } }
+        );
+        continue;
+      }
+
       const desc = `URL: ${order.fields._dlc_DocIdUrl.url || "none"} 
       <br> Entered date: ${order.createdDateTime} 
       <br> PO number: ${order.fields.PONumber || "none"} 
@@ -462,22 +509,20 @@ app.post("/graph/order", async (req, res) => {
         shipToSite: order.fields.ShipToSite || null,
         poNumber: order.fields.PONumber || null,
         soNumber: order.fields.SONumber || null,
-        id: order.fields.id,
+        id: order.id,
         description: desc,
       });
-    });
+    }
   } catch (e) {
     console.error(`there was an error iterating order: ${e}`);
   }
   try {
-    const client = new MongoClient(process.env.mongoURL);
-    const db = client.db(process.env.mongoDB);
-    const wrikeTitles = db.collection(process.env.mongoOrderCollection);
     await Promise.all(
       currentHistory.map(async (or) => {
         await processOrder(or, wrikeTitles);
       })
     );
+    client.close;
   } catch (e) {
     console.error(`there was an error mapping order: ${e} ${e.stack}`);
   }

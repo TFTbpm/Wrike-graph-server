@@ -52,25 +52,9 @@ async function getOrders(site_id, list_id, access_token, skipToken) {
   return filteredItems;
 }
 
-async function addOrder(
-  site_id,
-  list_id,
-  access_token,
-  skipToken,
-  data,
-  name,
-  uri,
-  metaData
-) {
-  console.log({
-    resource: "Order",
-    id: 0,
-    type: "ADD",
-    data: data,
-    name: name,
-  });
+async function addOrder(data, name, uri, metaData) {
   try {
-    const response = await fetch(uri, {
+    const response = fetch(uri, {
       method: "PATCH",
       body: JSON.stringify({
         resource: "Order",
@@ -83,12 +67,7 @@ async function addOrder(
         "Content-Type": "application/json",
       },
     });
-    if (!response.ok) {
-      console.log(
-        `there was an issue with the fetch request: ${response.statusText} \n ${response.status}`
-      );
-    }
-    console.log(await response.text());
+    // console.log(await response.text());
     // const result = await response.json();
 
     // console.log(result);
