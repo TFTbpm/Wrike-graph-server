@@ -57,6 +57,7 @@ async function modifyGraphRFQ(hooks, graphIDToWrikeID) {
         console.log("Found Key:", foundKey);
 
         const assignee = await users.findOne({ id: foundKey });
+        client.close;
 
         console.log("Assignee:", assignee.name);
 
@@ -84,6 +85,7 @@ async function modifyGraphRFQ(hooks, graphIDToWrikeID) {
             return true;
           }
         } catch (error) {
+          client.close;
           throw new Error(
             `there was an issue sending the http request to power Automate: ${error}`
           );
@@ -102,6 +104,7 @@ async function modifyGraphRFQ(hooks, graphIDToWrikeID) {
         console.log("Found Key:", foundKey);
 
         const assignee = await users.findOne({ id: foundKey });
+        client.close;
 
         console.log("Assignee:", assignee);
 
@@ -133,6 +136,7 @@ async function modifyGraphRFQ(hooks, graphIDToWrikeID) {
         }
       } else {
         console.log("Unexpected hook:", hook);
+        client.close;
         return false;
       }
     }
