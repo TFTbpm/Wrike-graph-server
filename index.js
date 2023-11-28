@@ -282,7 +282,6 @@ app.post("/wrike/order", async (req, res) => {
         id: req.body[0].taskId,
         content: fileHash,
       });
-      client.close(); // close the connection after the operation
       orderResult = await addOrder(
         bufferString,
         data.data[0].name,
@@ -292,6 +291,10 @@ app.post("/wrike/order", async (req, res) => {
       console.error(
         `there was an issue connecting to the mongoclient to upload hash and id: ${error}`
       );
+    } finally {
+      if (client) {
+        await client.close();
+      }
     }
 
     // ? What if there's more than 2
@@ -367,9 +370,10 @@ app.post("/graph/rfq", async (req, res) => {
       reviewer: graphIDToWrikeID[element.fields.ReviewerLookupId] || null,
     });
   });
+  let client;
 
   try {
-    const client = new MongoClient(process.env.mongoURL);
+    client = new MongoClient(process.env.mongoURL);
     const db = client.db(process.env.mongoDB);
     const wrikeTitles = db.collection(process.env.mongoRFQCollection);
     await Promise.all(
@@ -377,9 +381,12 @@ app.post("/graph/rfq", async (req, res) => {
         await processRFQ(rfq, wrikeTitles);
       })
     );
-    client.close();
   } catch (e) {
     console.log(`error mapping rfq: ${e}`);
+  } finally {
+    if (client) {
+      await client.close();
+    }
   }
   res.status(200).send("good");
 });
@@ -435,9 +442,12 @@ app.post("/graph/datasheets", async (req, res) => {
         await processDataSheet(ds, wrikeTitles);
       })
     );
-    client.close();
   } catch (e) {
     console.log(`error mapping datasheets: ${e}`);
+  } finally {
+    if (client) {
+      await client.close();
+    }
   }
 
   res.status(200).send("good");
@@ -519,9 +529,12 @@ app.post("/graph/order", async (req, res) => {
         await processOrder(or, wrikeTitles);
       })
     );
-    client.close();
   } catch (e) {
     console.error(`there was an error mapping order: ${e} ${e.stack}`);
+  } finally {
+    if (client) {
+      await client.close();
+    }
   }
   res.status(200).send("good");
 });
