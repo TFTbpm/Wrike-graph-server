@@ -17,10 +17,11 @@ async function modifyGraphRFQ(hooks, graphIDToWrikeID) {
   try {
     let wrikeTitles;
     let users;
+    let client;
 
     // Connect to mongo
     try {
-      const client = new MongoClient(process.env.mongoURL);
+      client = new MongoClient(process.env.mongoURL);
       const db = client.db(process.env.mongoDB);
       wrikeTitles = db.collection(process.env.mongoRFQCollection);
       users = db.collection(process.env.mongoUserColection);
@@ -57,7 +58,7 @@ async function modifyGraphRFQ(hooks, graphIDToWrikeID) {
         console.log("Found Key:", foundKey);
 
         const assignee = await users.findOne({ id: foundKey });
-        client.close;
+        client.close();
 
         console.log("Assignee:", assignee.name);
 
@@ -85,7 +86,7 @@ async function modifyGraphRFQ(hooks, graphIDToWrikeID) {
             return true;
           }
         } catch (error) {
-          client.close;
+          client.close();
           throw new Error(
             `there was an issue sending the http request to power Automate: ${error}`
           );
@@ -104,7 +105,7 @@ async function modifyGraphRFQ(hooks, graphIDToWrikeID) {
         console.log("Found Key:", foundKey);
 
         const assignee = await users.findOne({ id: foundKey });
-        client.close;
+        client.close();
 
         console.log("Assignee:", assignee);
 
@@ -136,7 +137,7 @@ async function modifyGraphRFQ(hooks, graphIDToWrikeID) {
         }
       } else {
         console.log("Unexpected hook:", hook);
-        client.close;
+        client.close();
         return false;
       }
     }
