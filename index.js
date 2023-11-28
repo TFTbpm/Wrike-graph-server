@@ -211,7 +211,6 @@ app.post("/wrike/*", header("X-Hook-Secret").notEmpty(), (req, res, next) => {
     }
 
     // This checks if the xhooksecret used the correct secret key
-
     // Wrong secret value:
     if (xHookSecret !== calculatedHash) {
       res.status(401).send(`Invalid hash`);
