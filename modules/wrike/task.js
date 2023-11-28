@@ -319,7 +319,7 @@ async function processRFQ(rfq, wrikeTitles) {
           try {
             performMongoOperation(async () => {
               wrikeTitles.insertOne({
-                title: rfq.title,
+                title: `(RFQ) ${rfq.title}`,
                 id: data.data[0].id,
                 graphID: rfq.id,
               });
@@ -379,7 +379,7 @@ async function processRFQ(rfq, wrikeTitles) {
         rfq.status,
         null,
         [...(rfq.assinged == null ? Object.values(graphIDToWrikeID) : [])],
-        rfq.title
+        `(RFQ) ${rfq.title}`
       );
       performMongoOperation(async () => {
         wrikeTitles.findOneAndUpdate(
