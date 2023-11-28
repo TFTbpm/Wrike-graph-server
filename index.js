@@ -157,6 +157,11 @@ app.use(limiter);
 
 app.set("trust proxy", 1);
 
+// just used to verify the server is running
+app.get("/", (req, res) => {
+  res.send("up on /");
+});
+
 // This takes in raw Wrike body for comparing to value (x-hook-secret) to ensure origin is Wrike
 app.post("/wrike/*", (req, res, next) => {
   try {
@@ -297,9 +302,8 @@ app.post("/wrike/order", async (req, res) => {
   res.status(202).send();
 });
 
-// just used to verify the server is running
-app.get("/", (req, res) => {
-  res.send("up on /");
+app.post("/wrike/delete", async (req, res) => {
+  console.log(JSON.stringify(req.body));
 });
 
 app.post("/graph/*", (req, res, next) => {
