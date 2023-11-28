@@ -376,9 +376,16 @@ app.post("/graph/rfq", async (req, res) => {
     client = new MongoClient(process.env.mongoURL);
     const db = client.db(process.env.mongoDB);
     const wrikeTitles = db.collection(process.env.mongoRFQCollection);
+
     await Promise.all(
       currentHistory.map(async (rfq) => {
-        await processRFQ(rfq, wrikeTitles);
+        try {
+          await processRFQ(rfq, wrikeTitles);
+        } catch (e) {
+          console.error(
+            `there was an issue processing RFQs (in route /graph/rfq): ${e} \n ${e.stack}`
+          );
+        }
       })
     );
   } catch (e) {

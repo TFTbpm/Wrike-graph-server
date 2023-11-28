@@ -314,11 +314,12 @@ async function processRFQ(rfq, wrikeTitles) {
           : null,
         rfq.status,
         null
-      ).then((data) => {
+      ).then(async (data) => {
         if (data) {
           try {
-            performMongoOperation(async () => {
-              wrikeTitles.insertOne({
+            await performMongoOperation(async () => {
+              // ! These 2 asyncs are the only way we're able to close the connection in index
+              await wrikeTitles.insertOne({
                 title: `(RFQ) ${rfq.title}`,
                 id: data.data[0].id,
                 graphID: rfq.id,
@@ -381,8 +382,9 @@ async function processRFQ(rfq, wrikeTitles) {
         [...(rfq.assinged == null ? Object.values(graphIDToWrikeID) : [])],
         `(RFQ) ${rfq.title}`
       );
-      performMongoOperation(async () => {
-        wrikeTitles.findOneAndUpdate(
+      await performMongoOperation(async () => {
+        // ! These 2 asyncs are the only way we're able to close the connection in index
+        await wrikeTitles.findOneAndUpdate(
           { _id: title._id },
           { $set: { title: rfq.title } }
         );
