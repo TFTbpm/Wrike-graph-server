@@ -262,11 +262,6 @@ app.post("/wrike/order", async (req, res) => {
     let orderResult;
 
     try {
-      orderResult = await addOrder(
-        bufferString,
-        data.data[0].name,
-        process.env.graph_power_automate_uri
-      );
       const client = new MongoClient(process.env.mongoURL);
       const db = client.db(process.env.mongoDB);
       const ordersCollection = db.collection(process.env.mongoOrderCollection);
@@ -284,6 +279,11 @@ app.post("/wrike/order", async (req, res) => {
         content: fileHash,
       });
       client.close(); // close the connection after the operation
+      orderResult = await addOrder(
+        bufferString,
+        data.data[0].name,
+        process.env.graph_power_automate_uri
+      );
     } catch (error) {
       console.error(
         `there was an issue connecting to the mongoclient to upload hash and id: ${error}`
@@ -374,7 +374,7 @@ app.post("/graph/rfq", async (req, res) => {
         await processRFQ(rfq, wrikeTitles);
       })
     );
-    client.close;
+    client.close();
   } catch (e) {
     console.log(`error mapping rfq: ${e}`);
   }
@@ -432,7 +432,7 @@ app.post("/graph/datasheets", async (req, res) => {
         await processDataSheet(ds, wrikeTitles);
       })
     );
-    client.close;
+    client.close();
   } catch (e) {
     console.log(`error mapping datasheets: ${e}`);
   }
@@ -516,7 +516,7 @@ app.post("/graph/order", async (req, res) => {
         await processOrder(or, wrikeTitles);
       })
     );
-    client.close;
+    client.close();
   } catch (e) {
     console.error(`there was an error mapping order: ${e} ${e.stack}`);
   }
