@@ -344,6 +344,91 @@ app.post("/wrike/rfq/delete", async (req, res) => {
   res.status(202).send();
 });
 
+// ! This route will be used to clean up untracked RFQ's. Only trigger manually.
+app.post("/wrike/rfq/sync", async (req, res) => {
+  // Get all the RFQs from Wrike
+  const response = await fetch(
+    `https://www.wrike.com/api/v4/folders/${process.env.wrike_folder_rfq}/tasks`,
+    {
+      headers: {
+        Authorization: `Bearer ${process.env.wrike_perm_access_token}`,
+      },
+    }
+  );
+  if (!response.ok) {
+    const errorMessage = await response.text();
+    console.error(`Failed to fetch tasks from Wrike: ${errorMessage}`);
+  }
+  const wrikeRFQs = await response.json();
+
+  // Connect to mongo
+  let client;
+  let mongoRFQs;
+  try {
+    client = new MongoClient(process.env.mongoURL);
+    const db = client.db(process.env.mongoDB);
+    mongoRFQs = db.collection(process.env.mongoRFQCollection);
+  } catch (e) {
+    console.error(
+      `there was an issue connecting to mongo while cleaning up: ${e}`
+    );
+    res.status(202).send();
+    return;
+  }
+
+  // Get the mongo RFQs
+  let mongoRfqDocs = mongoRFQs.find({});
+  let mongoRemovalArray = [];
+  let mongoArray = [];
+  // iterate over the mongo RFQs, search for non matches from Wrike
+  for await (let rfq of mongoRfqDocs) {
+    // ? what about duplicates?
+    mongoArray.push(rfq.id);
+    let match = wrikeRFQs.data.find((r) => r.id == rfq.id);
+    if (!match) {
+      // ! Remove these from mongo
+      mongoRemovalArray.push(rfq.id);
+    }
+  }
+  let wrikeRemovalArray = [];
+
+  // iterate over the Wrike RFQs, search for non matches from MongoDB
+  for (let rfq of wrikeRFQs.data) {
+    // ? What about duplicates?
+    let match = mongoArray.find((r) => r === rfq.id);
+    if (!match) {
+      // ! Remove these from wrike
+      wrikeRemovalArray.push(rfq.id);
+    }
+  }
+
+  // Delete all the RFQs from mongo which are in the mongo removal array
+  mongoRemovalArray.forEach(async (rfq) => {
+    // console.log(rfq);
+    const deleted = await mongoRFQs.deleteMany({ id: rfq });
+    console.log(deleted);
+  });
+
+  wrikeRemovalArray.forEach(async (rfq) => {
+    const response = await fetch(`https://www.wrike.com/api/v4/tasks/${rfq}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${process.env.wrike_perm_access_token}`,
+      },
+    });
+    if (!response.ok) {
+      const errorMessage = await response.text();
+      console.error(`Failed to fetch tasks from Wrike: ${errorMessage}`);
+    }
+    const wrikeRFQs = await response.json();
+    console.log(`deleted ${rfq} from wrike`);
+  });
+
+  // Delete all the RFQs from Wrike which are in the wrike removal array
+
+  res.status(200).send();
+});
+
 app.post("/graph/*", (req, res, next) => {
   if (req.url.includes("validationToken=")) {
     // have to check for %3A with a regex and replace matches since decodeURI treats them as special char
