@@ -306,6 +306,7 @@ app.post("/wrike/order", async (req, res) => {
 
 app.post("/wrike/delete", async (req, res) => {
   console.log(JSON.stringify(req.body));
+  res.status(202).send();
 });
 
 app.post("/graph/*", (req, res, next) => {
