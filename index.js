@@ -305,7 +305,7 @@ app.post("/wrike/order", async (req, res) => {
 });
 
 app.post("/wrike/rfq/delete", async (req, res) => {
-  console.log(JSON.stringify(req.body));
+  // console.log(JSON.stringify(req.body));
   let client;
   let rfqs;
   try {
@@ -319,7 +319,9 @@ app.post("/wrike/rfq/delete", async (req, res) => {
   }
   req.body.forEach(async (task) => {
     try {
-      await rfqs.deleteMany({ id: task.id });
+      // console.log(task);
+      const deleteResult = await rfqs.deleteMany({ id: task.taskId });
+      console.log(deleteResult);
     } catch (e) {
       console.error(`there was a problem deleting task ${task.id}: \n ${e}`);
     }
