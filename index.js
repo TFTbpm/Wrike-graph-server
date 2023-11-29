@@ -304,8 +304,35 @@ app.post("/wrike/order", async (req, res) => {
   res.status(202).send();
 });
 
-app.post("/wrike/delete", async (req, res) => {
+app.post("/wrike/rfq/delete", async (req, res) => {
   console.log(JSON.stringify(req.body));
+  let client;
+  let rfqs;
+  try {
+    client = new MongoClient(process.env.mongoURL);
+    const db = client.db(process.env.mongoDB);
+    rfqs = db.collection(process.env.mongoRFQCollection);
+  } catch (e) {
+    console.error(
+      `there was an issue with connecting to mongo for deleting: ${e}`
+    );
+  }
+  req.body.forEach(async (task) => {
+    try {
+      await rfqs.deleteMany({ id: task.id });
+    } catch (e) {
+      console.error(`there was a problem deleting task ${task.id}: \n ${e}`);
+    }
+  });
+  try {
+    if (rfqs) {
+      client.close();
+    }
+  } catch (e) {
+    console.error(
+      `there was an error closing the connection: ${e} \n ${e.stack}`
+    );
+  }
   res.status(202).send();
 });
 
