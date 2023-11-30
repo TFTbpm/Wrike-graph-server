@@ -516,7 +516,6 @@ app.post("/graph/rfq", async (req, res) => {
   } finally {
     if (client) {
       console.log("closing client...");
-      console.log(processPromises);
       await client.close();
     }
   }
