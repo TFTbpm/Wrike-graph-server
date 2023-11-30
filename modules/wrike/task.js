@@ -326,7 +326,9 @@ async function processRFQ(rfq, wrikeTitles) {
               });
             });
           } catch (e) {
-            console.log(`error with inserting rfq: ${e} \n data: ${data}`);
+            console.log(
+              `error with inserting rfq: ${e} \n data: ${JSON.stringify(data)}`
+            );
           }
         } else {
           console.log("data undefined!");
@@ -382,14 +384,19 @@ async function processRFQ(rfq, wrikeTitles) {
         [...(rfq.assinged == null ? Object.values(graphIDToWrikeID) : [])],
         `(RFQ) ${rfq.title}`
       );
-      await performMongoOperation(async () => {
-        // ! These 2 asyncs are the only way we're able to close the connection in index
-        await wrikeTitles.findOneAndUpdate(
-          { _id: title._id },
-          { $set: { title: rfq.title } }
+      try {
+        await performMongoOperation(async () => {
+          // ! These 2 asyncs are the only way we're able to close the connection in index
+          await wrikeTitles.findOneAndUpdate(
+            { _id: title._id },
+            { $set: { title: rfq.title } }
+          );
+        });
+      } catch (e) {
+        console.log(
+          `error modifying rfq in wrike: ${e} \n data: ${JSON.stringify(data)}`
         );
-      });
-
+      }
       console.log("not new, but modified");
     } catch (e) {
       console.log(`error updating rfq: ${e}`);

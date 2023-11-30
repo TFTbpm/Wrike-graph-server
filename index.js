@@ -498,17 +498,16 @@ app.post("/graph/rfq", async (req, res) => {
     const db = client.db(process.env.mongoDB);
     const wrikeTitles = db.collection(process.env.mongoRFQCollection);
 
-    await Promise.all(
-      currentHistory.map(async (rfq) => {
-        try {
-          await processRFQ(rfq, wrikeTitles);
-        } catch (e) {
-          console.error(
-            `there was an issue processing RFQs (in route /graph/rfq): ${e} \n ${e.stack}`
-          );
-        }
-      })
-    );
+    const processPromises = currentHistory.map(async (rfq) => {
+      try {
+        return processRFQ(rfq, wrikeTitles);
+      } catch (e) {
+        console.error(
+          `there was an issue processing RFQs (in route /graph/rfq): ${e} \n ${e.stack}`
+        );
+      }
+    });
+    await Promise.all(processPromises);
   } catch (e) {
     console.log(`error mapping rfq: ${e}`);
   } finally {
