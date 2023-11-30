@@ -493,13 +493,14 @@ app.post("/graph/rfq", async (req, res) => {
     });
   });
   let client;
+  let processPromises;
 
   try {
     client = new MongoClient(process.env.mongoURL);
     const db = client.db(process.env.mongoDB);
     const wrikeTitles = db.collection(process.env.mongoRFQCollection);
 
-    const processPromises = currentHistory.map(async (rfq) => {
+    processPromises = currentHistory.map(async (rfq) => {
       try {
         return processRFQ(rfq, wrikeTitles);
       } catch (e) {
@@ -508,11 +509,14 @@ app.post("/graph/rfq", async (req, res) => {
         );
       }
     });
+    // console.log(processPromises);
     await Promise.all(processPromises);
   } catch (e) {
     console.log(`error mapping rfq: ${e}`);
   } finally {
     if (client) {
+      console.log("closing client...");
+      console.log(processPromises);
       await client.close();
     }
   }

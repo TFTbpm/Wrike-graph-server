@@ -251,9 +251,10 @@ async function getTasks(taskId, access_token) {
 
 // TODO: update the given RFQ if found and replace title, check for both title and rfq.id  (ln 275)
 async function processRFQ(rfq, wrikeTitles) {
-  // TODO: Move most of these to custom fields
+  return new Promise(async (resolve, reject) => {
+    // TODO: Move most of these to custom fields
 
-  const descriptionStr = `Title: (RFQ) ${rfq.title} <br>
+    const descriptionStr = `Title: (RFQ) ${rfq.title} <br>
     Link to SharePoint: ${rfq.url} <br>
     Customer Name: ${rfq.customerName} <br>
     Account Type: ${rfq.accountType} <br>
@@ -266,142 +267,162 @@ async function processRFQ(rfq, wrikeTitles) {
     ID: ${rfq.id}
     `;
 
-  let title;
-  try {
-    await performMongoOperation(async () => {
-      title = await wrikeTitles.findOne({ graphID: rfq.id });
-    });
-  } catch (error) {
-    console.log(`MongoDB operation failed after multiple retries: ${error}`);
-  }
-  // if this title hasn't been put into the system yet:
-  if (title === null) {
+    let title;
     try {
-      createTask(
-        `(RFQ) ${rfq.title}`,
-        process.env.wrike_folder_rfq,
-        process.env.wrike_perm_access_token,
-        descriptionStr,
-        null,
-        rfq.priority,
-        rfq.internalDueDate
-          ? {
-              start: rfq.startDate.slice(0, rfq.startDate.length - 2),
-              due: rfq.internalDueDate.slice(0, rfq.internalDueDate.length - 2),
-            }
-          : null,
-        null,
-        null,
-        [...(rfq.assinged == null ? [] : [rfq.assinged])],
-        null,
-        rfq.reviewer && rfq.customerName
-          ? [
-              {
-                id: wrikeCustomFields.Customer,
-                value: rfq.customerName.toUpperCase(),
-              },
-              { id: wrikeCustomFields.Reviewer, value: rfq.reviewer },
-            ]
-          : rfq.reviewer
-          ? [{ id: wrikeCustomFields.Reviewer, value: rfq.reviewer }]
-          : rfq.customerName
-          ? [
-              {
-                id: wrikeCustomFields.Customer,
-                value: rfq.customerName.toUpperCase(),
-              },
-            ]
-          : null,
-        rfq.status,
-        null
-      ).then(async (data) => {
-        if (data) {
-          try {
-            await performMongoOperation(async () => {
-              // ! These 2 asyncs are the only way we're able to close the connection in index
-              await wrikeTitles.insertOne({
-                title: `(RFQ) ${rfq.title}`,
-                id: data.data[0].id,
-                graphID: rfq.id,
-              });
-            });
-          } catch (e) {
-            console.log(
-              `error with inserting rfq: ${e} \n data: ${JSON.stringify(data)}`
-            );
-          }
-        } else {
-          console.log("data undefined!");
-        }
+      await performMongoOperation(async () => {
+        title = await wrikeTitles.findOne({ graphID: rfq.id });
       });
-      console.log("is new");
-    } catch (e) {
-      console.log(`error creating rfq: ${e}`);
+    } catch (error) {
+      console.log(`MongoDB operation failed after multiple retries: ${error}`);
+      reject(error);
     }
-
-    // MODIFY RFQ --------------------------------------
-  } else {
-    // if it exists in the system, modify the task
-    const taskID = title.id;
-    try {
-      modifyTask(
-        taskID,
-        process.env.wrike_folder_rfq,
-        process.env.wrike_perm_access_token,
-        null,
-        null,
-        rfq.priority,
-        rfq.internalDueDate
-          ? {
-              start: rfq.startDate.slice(0, rfq.startDate.length - 2),
-              due: rfq.internalDueDate.slice(0, rfq.internalDueDate.length - 2),
-            }
-          : null,
-        null,
-        null,
-        [...(rfq.assinged == null ? [] : [rfq.assinged])],
-        null,
-        rfq.reviewer && rfq.customerName
-          ? [
-              {
-                id: wrikeCustomFields.Customer,
-                value: rfq.customerName.toUpperCase(),
-              },
-              { id: wrikeCustomFields.Reviewer, value: rfq.reviewer },
-            ]
-          : rfq.reviewer
-          ? [{ id: wrikeCustomFields.Reviewer, value: rfq.reviewer }]
-          : rfq.customerName
-          ? [
-              {
-                id: wrikeCustomFields.Customer,
-                value: rfq.customerName.toUpperCase(),
-              },
-            ]
-          : null,
-        rfq.status,
-        null,
-        [...(rfq.assinged == null ? Object.values(graphIDToWrikeID) : [])],
-        `(RFQ) ${rfq.title}`
-      );
+    // if this title hasn't been put into the system yet:
+    if (title === null) {
       try {
-        await performMongoOperation(async () => {
-          // ! These 2 asyncs are the only way we're able to close the connection in index
-          await wrikeTitles.findOneAndUpdate(
-            { _id: title._id },
-            { $set: { title: rfq.title } }
-          );
+        createTask(
+          `(RFQ) ${rfq.title}`,
+          process.env.wrike_folder_rfq,
+          process.env.wrike_perm_access_token,
+          descriptionStr,
+          null,
+          rfq.priority,
+          rfq.internalDueDate
+            ? {
+                start: rfq.startDate.slice(0, rfq.startDate.length - 2),
+                due: rfq.internalDueDate.slice(
+                  0,
+                  rfq.internalDueDate.length - 2
+                ),
+              }
+            : null,
+          null,
+          null,
+          [...(rfq.assinged == null ? [] : [rfq.assinged])],
+          null,
+          rfq.reviewer && rfq.customerName
+            ? [
+                {
+                  id: wrikeCustomFields.Customer,
+                  value: rfq.customerName.toUpperCase(),
+                },
+                { id: wrikeCustomFields.Reviewer, value: rfq.reviewer },
+              ]
+            : rfq.reviewer
+            ? [{ id: wrikeCustomFields.Reviewer, value: rfq.reviewer }]
+            : rfq.customerName
+            ? [
+                {
+                  id: wrikeCustomFields.Customer,
+                  value: rfq.customerName.toUpperCase(),
+                },
+              ]
+            : null,
+          rfq.status,
+          null
+        ).then(async (data) => {
+          if (data) {
+            try {
+              await performMongoOperation(async () => {
+                // ! These 2 asyncs are the only way we're able to close the connection in index
+                await wrikeTitles.insertOne({
+                  title: `(RFQ) ${rfq.title}`,
+                  id: data.data[0].id,
+                  graphID: rfq.id,
+                });
+                resolve();
+              });
+            } catch (error) {
+              console.log(
+                `error with inserting rfq: ${error} \n data: ${JSON.stringify(
+                  data
+                )}`
+              );
+              reject(error);
+            }
+          } else {
+            console.log("data undefined!");
+            reject("data undefined");
+          }
         });
-      } catch (e) {
-        console.log(
-          `error modifying rfq in wrike: ${e} \n data: ${JSON.stringify(data)}`
-        );
+        console.log("is new");
+        resolve();
+      } catch (error) {
+        console.log(`error creating rfq: ${error}`);
+        reject(error);
       }
-      console.log("not new, but modified");
-    } catch (e) {
-      console.log(`error updating rfq: ${e}`);
+
+      // MODIFY RFQ --------------------------------------
+    } else {
+      // if it exists in the system, modify the task
+      const taskID = title.id;
+      try {
+        modifyTask(
+          taskID,
+          process.env.wrike_folder_rfq,
+          process.env.wrike_perm_access_token,
+          null,
+          null,
+          rfq.priority,
+          rfq.internalDueDate
+            ? {
+                start: rfq.startDate.slice(0, rfq.startDate.length - 2),
+                due: rfq.internalDueDate.slice(
+                  0,
+                  rfq.internalDueDate.length - 2
+                ),
+              }
+            : null,
+          null,
+          null,
+          [...(rfq.assinged == null ? [] : [rfq.assinged])],
+          null,
+          rfq.reviewer && rfq.customerName
+            ? [
+                {
+                  id: wrikeCustomFields.Customer,
+                  value: rfq.customerName.toUpperCase(),
+                },
+                { id: wrikeCustomFields.Reviewer, value: rfq.reviewer },
+              ]
+            : rfq.reviewer
+            ? [{ id: wrikeCustomFields.Reviewer, value: rfq.reviewer }]
+            : rfq.customerName
+            ? [
+                {
+                  id: wrikeCustomFields.Customer,
+                  value: rfq.customerName.toUpperCase(),
+                },
+              ]
+            : null,
+          rfq.status,
+          null,
+          [...(rfq.assinged == null ? Object.values(graphIDToWrikeID) : [])],
+          `(RFQ) ${rfq.title}`
+        );
+        try {
+          await performMongoOperation(async () => {
+            // ! These 2 asyncs are the only way we're able to close the connection in index
+            await wrikeTitles.findOneAndUpdate(
+              { _id: title._id },
+              { $set: { title: rfq.title } }
+            );
+            resolve();
+          });
+        } catch (error) {
+          console.log(
+            `error modifying rfq in wrike: ${error} \n data: ${JSON.stringify(
+              data
+            )}`
+          );
+          reject(error);
+        }
+        console.log("not new, but modified");
+      } catch (error) {
+        console.log(`error updating rfq: ${error}`);
+        reject(error);
+      }
     }
-  }
+  });
 }
 
 async function processDataSheet(datasheet, wrikeTitles) {
