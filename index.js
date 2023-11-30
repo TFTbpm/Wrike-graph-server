@@ -264,9 +264,10 @@ app.post("/wrike/order", async (req, res) => {
     // TODO: add a filter here which checks if the wrike ID
 
     let orderResult;
+    let client;
 
     try {
-      const client = new MongoClient(process.env.mongoURL);
+      client = new MongoClient(process.env.mongoURL);
       const db = client.db(process.env.mongoDB);
       const ordersCollection = db.collection(process.env.mongoOrderCollection);
       const currentOrder = await ordersCollection.findOne({
