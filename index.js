@@ -507,11 +507,10 @@ app.post("/graph/rfq", async (req, res) => {
         console.error(
           `there was an issue processing RFQs (in route /graph/rfq): ${e} \n ${e.stack}`
         );
-        return false; // return a flag indicating failure
+        return false;
       }
     });
 
-    // Wait for all processRFQ promises to complete or fail before moving to finally block
     await Promise.all(processPromises);
   } catch (e) {
     console.log(`error mapping rfq: ${e}`);
