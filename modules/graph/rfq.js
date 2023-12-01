@@ -101,7 +101,6 @@ async function modifyUserFromWrike(
     }
 
     try {
-      console.log(body);
       const response = await fetch(process.env.graph_power_automate_uri, {
         method: "PATCH",
         body: body,
