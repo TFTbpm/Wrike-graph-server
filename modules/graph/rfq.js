@@ -161,20 +161,6 @@ async function modifyUserFromWrike(
 ) {
   let body;
   try {
-    // let wrikeTitles;
-    // let users;
-    // let client;
-
-    // // Connect to mongo
-    // try {
-    //   client = new MongoClient(process.env.mongoURL);
-    //   const db = client.db(process.env.mongoDB);
-    //   wrikeTitles = db.collection(process.env.mongoRFQCollection);
-    //   users = db.collection(process.env.mongoUserColection);
-    // } catch (error) {
-    //   throw new Error(`there was an issue accessing Mongo: ${error}`);
-    // }
-
     for (const hook of hooks) {
       let mongoEntry;
 
@@ -219,31 +205,6 @@ async function modifyUserFromWrike(
           type: "ADD",
           name: "null",
         });
-
-        // try {
-        //   const response = await fetch(process.env.graph_power_automate_uri, {
-        //     method: "PATCH",
-        //     body: JSON.stringify({
-        //       resource: "RFQ",
-        //       data: assignee.name,
-        //       id: parseInt(mongoEntry.graphID),
-        //       type: "ADD",
-        //       name: "null",
-        //     }),
-        //     headers: {
-        //       "Content-Type": "application/json",
-        //     },
-        //   });
-        //   if (response.ok) {
-        //     console.log("added user information for rfq");
-        //     return true;
-        //   }
-        // } catch (error) {
-        //   client.close();
-        //   throw new Error(
-        //     `there was an issue sending the http request to power Automate: ${error}`
-        //   );
-        // }
       } else if (hook.removedResponsibles) {
         // get graph id from wrike id
         const foundKey = Object.keys(graphIDToWrikeID).find(
@@ -273,28 +234,6 @@ async function modifyUserFromWrike(
           type: "REMOVE",
           name: "null",
         });
-
-        // try {
-        //   const response = await fetch(process.env.graph_power_automate_uri, {
-        //     method: "PATCH",
-        //     body: JSON.stringify({
-        //       resource: "RFQ",
-        //       data: assignee.name,
-        //       id: parseInt(mongoEntry.graphID),
-        //       type: "REMOVE",
-        //       name: "null",
-        //     }),
-        //     headers: {
-        //       "Content-Type": "application/json",
-        //     },
-        //   });
-        //   if (response.ok) {
-        //     console.log("removed user information for rfq");
-        //     return true;
-        //   }
-        // } catch (error) {
-        //   throw new Error(`there was an error removing responsbles: ${error}`);
-        // }
       } else {
         console.log("Unexpected hook:", hook);
         return false;
