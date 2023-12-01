@@ -9,11 +9,7 @@ const {
 } = require("./modules/wrike/task");
 const graphAccessData = require("./modules/graph/accessToken");
 const rateLimit = require("express-rate-limit");
-const {
-  getRFQData,
-  modifyGraphRFQ,
-  modifyUserFromWrike,
-} = require("./modules/graph/rfq");
+const { getRFQData, modifyUserFromWrike } = require("./modules/graph/rfq");
 const getDatasheets = require("./modules/graph/datasheet");
 const { getOrders, addOrder } = require("./modules/graph/order");
 const getOrderAttachment = require("./modules/wrike/getOrderAttachment");
