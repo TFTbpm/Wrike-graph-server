@@ -13,6 +13,7 @@ async function getRFQData(site_id, list_id, access_token) {
   return await data;
 }
 
+// TODO: generalize this
 async function modifyGraphRFQ(hooks, graphIDToWrikeID) {
   try {
     let wrikeTitles;
@@ -152,4 +153,178 @@ async function modifyGraphRFQ(hooks, graphIDToWrikeID) {
   }
 }
 
-module.exports = { getRFQData, modifyGraphRFQ };
+async function modifyUserFromWrike(
+  hooks,
+  graphIDToWrikeID,
+  dataCollection,
+  users
+) {
+  let body;
+  try {
+    // let wrikeTitles;
+    // let users;
+    // let client;
+
+    // // Connect to mongo
+    // try {
+    //   client = new MongoClient(process.env.mongoURL);
+    //   const db = client.db(process.env.mongoDB);
+    //   wrikeTitles = db.collection(process.env.mongoRFQCollection);
+    //   users = db.collection(process.env.mongoUserColection);
+    // } catch (error) {
+    //   throw new Error(`there was an issue accessing Mongo: ${error}`);
+    // }
+
+    for (const hook of hooks) {
+      let mongoEntry;
+
+      // Get mongo item of task ID
+      try {
+        (mongoEntry = await dataCollection.findOne({ id: hook.taskId })),
+          users.findOne({ id: hook.taskId });
+      } catch (error) {
+        throw new Error(
+          `there was an issue fetching the mongo entry: ${error}`
+        );
+      }
+
+      // if adding an assignee
+      if (hook.addedResponsibles) {
+        // get graph id from wrike id
+        const foundKey = Object.keys(graphIDToWrikeID).find(
+          (key) => graphIDToWrikeID[key] === hook.addedResponsibles[0]
+        );
+
+        if (!foundKey) {
+          console.log(`id is not stored! ID: ${hook.addedResponsibles}`);
+          continue;
+        }
+
+        console.log("Found Key:", foundKey);
+
+        const assignee = await users.findOne({ id: foundKey });
+
+        console.log("Assignee:", assignee.name);
+
+        if (!assignee) {
+          console.log(`id is not stored! ID: ${hook.addedResponsibles}`);
+          continue;
+        }
+        // send data to power automate
+
+        body = JSON.stringify({
+          resource: "RFQ",
+          data: assignee.name,
+          id: parseInt(mongoEntry.graphID),
+          type: "ADD",
+          name: "null",
+        });
+
+        // try {
+        //   const response = await fetch(process.env.graph_power_automate_uri, {
+        //     method: "PATCH",
+        //     body: JSON.stringify({
+        //       resource: "RFQ",
+        //       data: assignee.name,
+        //       id: parseInt(mongoEntry.graphID),
+        //       type: "ADD",
+        //       name: "null",
+        //     }),
+        //     headers: {
+        //       "Content-Type": "application/json",
+        //     },
+        //   });
+        //   if (response.ok) {
+        //     console.log("added user information for rfq");
+        //     return true;
+        //   }
+        // } catch (error) {
+        //   client.close();
+        //   throw new Error(
+        //     `there was an issue sending the http request to power Automate: ${error}`
+        //   );
+        // }
+      } else if (hook.removedResponsibles) {
+        // get graph id from wrike id
+        const foundKey = Object.keys(graphIDToWrikeID).find(
+          (key) => graphIDToWrikeID[key] === hook.removedResponsibles[0]
+        );
+
+        if (!foundKey) {
+          console.log(`id is not stored! ID: ${hook.removedResponsibles}`);
+          continue;
+        }
+
+        console.log("Found Key:", foundKey);
+
+        const assignee = await users.findOne({ id: foundKey });
+
+        console.log("Assignee:", assignee);
+
+        if (!assignee) {
+          console.log(`id is not stored! ID: ${hook.removedResponsibles}`);
+          continue;
+        }
+
+        body = JSON.stringify({
+          resource: "RFQ",
+          data: assignee.name,
+          id: parseInt(mongoEntry.graphID),
+          type: "REMOVE",
+          name: "null",
+        });
+
+        // try {
+        //   const response = await fetch(process.env.graph_power_automate_uri, {
+        //     method: "PATCH",
+        //     body: JSON.stringify({
+        //       resource: "RFQ",
+        //       data: assignee.name,
+        //       id: parseInt(mongoEntry.graphID),
+        //       type: "REMOVE",
+        //       name: "null",
+        //     }),
+        //     headers: {
+        //       "Content-Type": "application/json",
+        //     },
+        //   });
+        //   if (response.ok) {
+        //     console.log("removed user information for rfq");
+        //     return true;
+        //   }
+        // } catch (error) {
+        //   throw new Error(`there was an error removing responsbles: ${error}`);
+        // }
+      } else {
+        console.log("Unexpected hook:", hook);
+        return false;
+      }
+    }
+
+    try {
+      console.log(body);
+      const response = await fetch(process.env.graph_power_automate_uri, {
+        method: "PATCH",
+        body: body,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+      if (response.ok) {
+        console.log("modified user information for rfq");
+        return true;
+      }
+    } catch (error) {
+      throw new Error(`there was an error modifying responsbles: ${error}`);
+    }
+  } catch (error) {
+    console.error(
+      `There was an error processing the rfq: ${error}\n ${error.stack}`
+    );
+    throw new Error(
+      `There was an error processing the rfq: ${error}\n ${error.stack}`
+    );
+  }
+}
+
+module.exports = { getRFQData, modifyGraphRFQ, modifyUserFromWrike };

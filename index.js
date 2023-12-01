@@ -9,7 +9,11 @@ const {
 } = require("./modules/wrike/task");
 const graphAccessData = require("./modules/graph/accessToken");
 const rateLimit = require("express-rate-limit");
-const { getRFQData, modifyGraphRFQ } = require("./modules/graph/rfq");
+const {
+  getRFQData,
+  modifyGraphRFQ,
+  modifyUserFromWrike,
+} = require("./modules/graph/rfq");
 const getDatasheets = require("./modules/graph/datasheet");
 const { getOrders, addOrder } = require("./modules/graph/order");
 const getOrderAttachment = require("./modules/wrike/getOrderAttachment");
@@ -229,9 +233,28 @@ app.post("/wrike/*", header("X-Hook-Secret").notEmpty(), (req, res, next) => {
 });
 
 app.post("/wrike/rfq", async (req, res) => {
+  let wrikeTitles;
+  let users;
+  let client;
   let result;
+
+  // Connect to mongo
   try {
-    result = await modifyGraphRFQ(req.body, graphIDToWrikeID);
+    client = new MongoClient(process.env.mongoURL);
+    const db = client.db(process.env.mongoDB);
+    wrikeTitles = db.collection(process.env.mongoRFQCollection);
+    users = db.collection(process.env.mongoUserColection);
+  } catch (error) {
+    throw new Error(`there was an issue accessing Mongo: ${error}`);
+  }
+
+  try {
+    result = await modifyUserFromWrike(
+      req.body,
+      graphIDToWrikeID,
+      wrikeTitles,
+      users
+    );
   } catch (e) {
     console.log(e);
   }
