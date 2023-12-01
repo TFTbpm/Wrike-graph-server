@@ -329,8 +329,10 @@ async function processRFQ(rfq, wrikeTitles) {
                   id: data.data[0].id,
                   graphID: rfq.id,
                 });
-                resolve();
               });
+
+              console.log("is new");
+              resolve("new and completed");
             } catch (error) {
               console.log(
                 `error with inserting rfq: ${error} \n data: ${JSON.stringify(
@@ -344,8 +346,6 @@ async function processRFQ(rfq, wrikeTitles) {
             reject("data undefined");
           }
         });
-        console.log("is new");
-        resolve();
       } catch (error) {
         console.log(`error creating rfq: ${error}`);
         reject(error);
@@ -406,8 +406,10 @@ async function processRFQ(rfq, wrikeTitles) {
               { _id: title._id },
               { $set: { title: rfq.title } }
             );
-            resolve();
           });
+
+          console.log("not new, but modified");
+          resolve("not new and modified");
         } catch (error) {
           console.log(
             `error modifying rfq in wrike: ${error} \n data: ${JSON.stringify(
@@ -416,7 +418,6 @@ async function processRFQ(rfq, wrikeTitles) {
           );
           reject(error);
         }
-        console.log("not new, but modified");
       } catch (error) {
         console.log(`error updating rfq: ${error}`);
         reject(error);

@@ -346,7 +346,7 @@ app.post("/wrike/rfq/delete", async (req, res) => {
 });
 
 // ! This route will be used to clean up untracked RFQ's. Only trigger manually.
-app.post("/wrike/rfq/sync", async (req, res) => {
+app.post("/rfq/sync", async (req, res) => {
   // Get all the RFQs from Wrike
   const response = await fetch(
     `https://www.wrike.com/api/v4/folders/${process.env.wrike_folder_rfq}/tasks`,
@@ -500,25 +500,27 @@ app.post("/graph/rfq", async (req, res) => {
     const db = client.db(process.env.mongoDB);
     const wrikeTitles = db.collection(process.env.mongoRFQCollection);
 
-    processPromises = currentHistory.map(async (rfq) => {
+    const processPromises = currentHistory.map(async (rfq) => {
       try {
-        return processRFQ(rfq, wrikeTitles);
+        return await processRFQ(rfq, wrikeTitles);
       } catch (e) {
         console.error(
           `there was an issue processing RFQs (in route /graph/rfq): ${e} \n ${e.stack}`
         );
+        return false; // return a flag indicating failure
       }
     });
-    // console.log(processPromises);
+
+    // Wait for all processRFQ promises to complete or fail before moving to finally block
     await Promise.all(processPromises);
   } catch (e) {
     console.log(`error mapping rfq: ${e}`);
   } finally {
     if (client) {
-      console.log("closing client...");
       await client.close();
     }
   }
+
   res.status(200).send("good");
 });
 
