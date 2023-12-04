@@ -405,88 +405,14 @@ app.post("/wrike/order/delete", async (req, res) => {
 
 // ! This route will be used to clean up untracked RFQ's. Only trigger manually.
 app.post("/rfq/sync", async (req, res) => {
-  // Get all the RFQs from Wrike
-  const response = await fetch(
-    `https://www.wrike.com/api/v4/folders/${process.env.wrike_folder_rfq}/tasks`,
-    {
-      headers: {
-        Authorization: `Bearer ${process.env.wrike_perm_access_token}`,
-      },
-    }
+  await syncWrikeToCollection(
+    process.env.wrike_folder_rfq,
+    process.env.mongoRFQCollection
   );
-  if (!response.ok) {
-    const errorMessage = await response.text();
-    console.error(`Failed to fetch tasks from Wrike: ${errorMessage}`);
-  }
-  const wrikeRFQs = await response.json();
-
-  // Connect to mongo
-  let client;
-  let mongoRFQs;
-  try {
-    client = new MongoClient(process.env.mongoURL);
-    const db = client.db(process.env.mongoDB);
-    mongoRFQs = db.collection(process.env.mongoRFQCollection);
-  } catch (e) {
-    console.error(
-      `there was an issue connecting to mongo while cleaning up: ${e}`
-    );
-    res.status(202).send();
-    return;
-  }
-
-  // Get the mongo RFQs
-  let mongoRfqDocs = mongoRFQs.find({});
-  let mongoRemovalArray = [];
-  let mongoArray = [];
-  // iterate over the mongo RFQs, search for non matches from Wrike
-  for await (let rfq of mongoRfqDocs) {
-    // ? what about duplicates?
-    mongoArray.push(rfq.id);
-    let match = wrikeRFQs.data.find((r) => r.id == rfq.id);
-    if (!match) {
-      // ! Remove these from mongo
-      mongoRemovalArray.push(rfq.id);
-    }
-  }
-  let wrikeRemovalArray = [];
-
-  // iterate over the Wrike RFQs, search for non matches from MongoDB
-  for (let rfq of wrikeRFQs.data) {
-    // ? What about duplicates?
-    let match = mongoArray.find((r) => r === rfq.id);
-    if (!match) {
-      // ! Remove these from wrike
-      wrikeRemovalArray.push(rfq.id);
-    }
-  }
-
-  // Delete all the RFQs from mongo which are in the mongo removal array
-  mongoRemovalArray.forEach(async (rfq) => {
-    // console.log(rfq);
-    const deleted = await mongoRFQs.deleteMany({ id: rfq });
-    console.log(deleted);
-  });
-
-  wrikeRemovalArray.forEach(async (rfq) => {
-    const response = await fetch(`https://www.wrike.com/api/v4/tasks/${rfq}`, {
-      method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${process.env.wrike_perm_access_token}`,
-      },
-    });
-    if (!response.ok) {
-      const errorMessage = await response.text();
-      console.error(`Failed to fetch tasks from Wrike: ${errorMessage}`);
-    }
-    const wrikeRFQs = await response.json();
-    console.log(`deleted ${rfq} from wrike`);
-  });
-
-  // Delete all the RFQs from Wrike which are in the wrike removal array
-
   res.status(200).send();
 });
+
+app.post("/order/sync", async (req, res) => {});
 
 app.post("/graph/*", (req, res, next) => {
   if (req.url.includes("validationToken=")) {
@@ -742,5 +668,84 @@ app.listen(5501, () => {
 });
 
 app.listen();
+
+async function syncWrikeToCollection(wrikeFolderID, collectionName) {
+  // Get all the RFQs from Wrike
+  const response = await fetch(
+    `https://www.wrike.com/api/v4/folders/${wrikeFolderID}/tasks`,
+    {
+      headers: {
+        Authorization: `Bearer ${process.env.wrike_perm_access_token}`,
+      },
+    }
+  );
+  if (!response.ok) {
+    const errorMessage = await response.text();
+    console.error(`Failed to fetch tasks from Wrike: ${errorMessage}`);
+  }
+  const items = await response.json();
+
+  // Connect to mongo
+  let client;
+  let mongo;
+  try {
+    client = new MongoClient(process.env.mongoURL);
+    const db = client.db(process.env.mongoDB);
+    mongo = db.collection(collectionName);
+  } catch (e) {
+    console.error(
+      `there was an issue connecting to mongo while cleaning up: ${e}`
+    );
+    res.status(202).send();
+    return;
+  }
+
+  // Get the mongo RFQs
+  let mongoRfqDocs = mongo.find({});
+  let mongoRemovalArray = [];
+  let mongoArray = [];
+  // iterate over the mongo RFQs, search for non matches from Wrike
+  for await (let item of mongoRfqDocs) {
+    // ? what about duplicates?
+    mongoArray.push(item.id);
+    let match = items.data.find((r) => r.id == item.id);
+    if (!match) {
+      // ! Remove these from mongo
+      mongoRemovalArray.push(rfq.id);
+    }
+  }
+  let wrikeRemovalArray = [];
+
+  // iterate over the Wrike RFQs, search for non matches from MongoDB
+  for (let item of items.data) {
+    // ? What about duplicates?
+    let match = mongoArray.find((r) => r === item.id);
+    if (!match) {
+      // ! Remove these from wrike
+      wrikeRemovalArray.push(item.id);
+    }
+  }
+
+  // Delete all the RFQs from mongo which are in the mongo removal array
+  mongoRemovalArray.forEach(async (item) => {
+    // console.log(rfq);
+    const deleted = await mongo.deleteMany({ id: item });
+    console.log(deleted);
+  });
+
+  wrikeRemovalArray.forEach(async (item) => {
+    const response = await fetch(`https://www.wrike.com/api/v4/tasks/${item}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${process.env.wrike_perm_access_token}`,
+      },
+    });
+    if (!response.ok) {
+      const errorMessage = await response.text();
+      console.error(`Failed to fetch tasks from Wrike: ${errorMessage}`);
+    }
+    console.log(`deleted ${rfq} from wrike`);
+  });
+}
 
 module.exports = app;
