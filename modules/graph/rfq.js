@@ -64,6 +64,7 @@ async function modifyUserFromWrike(
           id: parseInt(mongoEntry.graphID),
           type: "ADD",
           name: "null",
+          assignee: true,
         });
       } else if (hook.removedResponsibles) {
         // get graph id from wrike id
@@ -93,6 +94,7 @@ async function modifyUserFromWrike(
           id: parseInt(mongoEntry.graphID),
           type: "REMOVE",
           name: "null",
+          assignee: true,
         });
       } else {
         console.log("Unexpected hook:", hook);
