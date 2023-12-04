@@ -691,19 +691,6 @@ app.post("/graph/order", async (req, res) => {
       await client.close();
     }
   }
-  // try {
-  //   await Promise.all(
-  //     currentHistory.map(async (or) => {
-  //       await processOrder(or, wrikeTitles);
-  //     })
-  //   );
-  // } catch (e) {
-  //   console.error(`there was an error mapping order: ${e} ${e.stack}`);
-  // } finally {
-  //   if (client) {
-  //     await client.close();
-  //   }
-  // }
   res.status(200).send("good");
 });
 
