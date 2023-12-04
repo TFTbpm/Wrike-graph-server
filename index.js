@@ -241,7 +241,7 @@ app.post("/wrike/rfq/assingee", async (req, res) => {
     wrikeTitles = db.collection(process.env.mongoRFQCollection);
     users = db.collection(process.env.mongoUserColection);
   } catch (error) {
-    throw new Error(`there was an issue accessing Mongo: ${error}`);
+    console.error(`there was an issue accessing Mongo: ${error}`);
   }
 
   try {
