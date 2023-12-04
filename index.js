@@ -339,7 +339,6 @@ app.post("/wrike/rfq/delete", async (req, res) => {
   }
   for (let task of req.body) {
     try {
-      console.log(task);
       if (task.taskId) {
         const deleteResult = await rfqs.deleteMany({ id: task.taskId });
         console.log(deleteResult);
@@ -354,6 +353,46 @@ app.post("/wrike/rfq/delete", async (req, res) => {
   }
   try {
     if (rfqs) {
+      await client.close();
+    }
+  } catch (e) {
+    console.error(
+      `there was an error closing the connection: ${e} \n ${e.stack}`
+    );
+  }
+  res.status(202).send();
+});
+
+app.post("/wrike/order/delete", async (req, res) => {
+  let client;
+  let orders;
+  // connect to mogno
+  try {
+    client = new MongoClient(process.env.mongoURL);
+    const db = client.db(process.env.mongoDB);
+    orders = db.collection(process.env.mongoOrderCollection);
+  } catch (error) {
+    let err = `there was an error connecing to the order database for deletion: ${error}`;
+    console.error(err);
+  }
+
+  // go through deleted tasks and remove them from mongo
+  for (let task of req.body) {
+    try {
+      if (task.taskId) {
+        const deleteResult = await orders.deleteMany({ id: task.taskId });
+        console.log(deleteResult);
+      } else {
+        console.log(`taskID undefined`);
+      }
+    } catch (e) {
+      console.error(
+        `there was a problem deleting task ${task.taskId}: \n ${e}`
+      );
+    }
+  }
+  try {
+    if (orders) {
       await client.close();
     }
   } catch (e) {
