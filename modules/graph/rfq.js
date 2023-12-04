@@ -13,6 +13,7 @@ async function getRFQData(site_id, list_id, access_token) {
   return await data;
 }
 
+// TODO: generalize this
 async function modifyUserFromWrike(
   hooks,
   graphIDToWrikeID,

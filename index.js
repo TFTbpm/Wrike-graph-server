@@ -264,6 +264,10 @@ app.post("/wrike/rfq/assignee", async (req, res) => {
   }
 });
 
+app.post("/wrike/rfq/reviewer", async (req, res) => {
+  console.log(req.body);
+});
+
 app.post("/wrike/order", async (req, res) => {
   let start = performance.now();
   // console.log(req.body);
