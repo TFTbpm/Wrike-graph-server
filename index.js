@@ -228,7 +228,7 @@ app.post("/wrike/*", header("X-Hook-Secret").notEmpty(), (req, res, next) => {
   }
 });
 
-app.post("/wrike/rfq/assingee", async (req, res) => {
+app.post("/wrike/rfq/assignee", async (req, res) => {
   let wrikeTitles;
   let users;
   let client;
