@@ -695,7 +695,8 @@ async function syncWrikeToCollection(wrikeFolderID, collectionName) {
   );
   if (!response.ok) {
     const errorMessage = await response.text();
-    console.error(`Failed to fetch tasks from Wrike: ${errorMessage}`);
+    const err = `Failed to fetch tasks from Wrike: ${errorMessage}`;
+    throw new Error(err);
   }
   const items = await response.json();
 
@@ -707,11 +708,8 @@ async function syncWrikeToCollection(wrikeFolderID, collectionName) {
     const db = client.db(process.env.mongoDB);
     mongo = db.collection(collectionName);
   } catch (e) {
-    console.error(
-      `there was an issue connecting to mongo while cleaning up: ${e}`
-    );
-    res.status(202).send();
-    return;
+    const err = `there was an issue connecting to mongo while cleaning up: ${e}`;
+    throw new Error(err);
   }
 
   // Get the mongo RFQs
@@ -756,7 +754,8 @@ async function syncWrikeToCollection(wrikeFolderID, collectionName) {
     });
     if (!response.ok) {
       const errorMessage = await response.text();
-      console.error(`Failed to fetch tasks from Wrike: ${errorMessage}`);
+      const err = `Failed to fetch tasks from Wrike: ${errorMessage}`;
+      throw new Error(err);
     }
     console.log(`deleted ${item} from wrike`);
   });
