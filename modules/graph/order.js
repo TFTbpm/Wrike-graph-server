@@ -62,6 +62,7 @@ async function addOrder(data, name, uri, metaData) {
         type: "ADD",
         data: data,
         name: name,
+        field: "file",
       }),
       headers: {
         "Content-Type": "application/json",
