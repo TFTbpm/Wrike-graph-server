@@ -526,67 +526,82 @@ async function processDataSheet(datasheet, wrikeTitles) {
 }
 
 async function processOrder(order, wrikeTitles) {
-  const title = await wrikeTitles.findOne({ graphID: order.id });
-  // console.log(title);
-  if (title == null) {
+  return new Promise(async (resolve, reject) => {
+    let title;
     try {
-      createTask(
-        order.title,
-        process.env.wrike_folder_orders,
-        process.env.wrike_perm_access_token,
-        order.description,
-        // TODO: get statuses
-        "Completed",
-        null,
-        // TODO: figure start date (basedo n priority? tier system?)
-        null,
-        null,
-        null,
-        order.author ? [order.author] : null,
-        null,
-        null,
-        null
-      ).then((data) => {
-        console.log("new order");
-        try {
-          wrikeTitles.insertOne({
-            id: data.data[0].id,
-            graphID: order.id,
-          });
-        } catch (e) {
-          throw new Error(`Error while inserting order: ${e}`);
-        }
-      });
-    } catch (e) {
-      console.log(`error creating order: ${e}`);
+      title = await wrikeTitles.findOne({ graphID: order.id });
+    } catch (error) {
+      const err = `there was an error finding the id in db: ${error}`;
+      console.error(err);
+      reject(err);
     }
-  } else {
-    const taskID = title.id;
-    try {
-      modifyTask(
-        taskID,
-        process.env.wrike_folder_orders,
-        process.env.wrike_perm_access_token,
-        order.description,
-        "Completed",
-        null,
-        null,
-        null,
-        null,
-        order.author ? [order.author] : null,
-        null,
-        null,
-        null,
-        null,
-        [...(order.author == null ? Object.values(graphIDToWrikeID) : [])],
-        order.title
-      ).then((data) => {
-        console.log("updated order");
-      });
-    } catch (e) {
-      console.log(`error modifying order: ${e}`);
+    if (title == null) {
+      try {
+        createTask(
+          order.title,
+          process.env.wrike_folder_orders,
+          process.env.wrike_perm_access_token,
+          order.description,
+          // TODO: get statuses
+          "Completed",
+          null,
+          // TODO: figure start date (basedo n priority? tier system?)
+          null,
+          null,
+          null,
+          order.author ? [order.author] : null,
+          null,
+          null,
+          null
+        ).then(async (data) => {
+          console.log("new order");
+          try {
+            await wrikeTitles.insertOne({
+              id: data.data[0].id,
+              graphID: order.id,
+            });
+            resolve("added new order");
+          } catch (e) {
+            const err = `Error while inserting order: ${e}`;
+            throw new Error(err);
+          }
+        });
+      } catch (e) {
+        const err = `error creating order: ${e}`;
+        console.log(err);
+        reject(err);
+      }
+    } else {
+      const taskID = title.id;
+      try {
+        await modifyTask(
+          taskID,
+          process.env.wrike_folder_orders,
+          process.env.wrike_perm_access_token,
+          order.description,
+          "Completed",
+          null,
+          null,
+          null,
+          null,
+          order.author ? [order.author] : null,
+          null,
+          null,
+          null,
+          null,
+          [...(order.author == null ? Object.values(graphIDToWrikeID) : [])],
+          order.title
+        ).then((data) => {
+          console.log("updated order");
+          resolve("order updated");
+        });
+      } catch (e) {
+        const err = `error modifying order: ${e}`;
+        console.log(err);
+        reject(err);
+      }
     }
-  }
+  });
 }
 
 module.exports = {

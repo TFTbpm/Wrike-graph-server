@@ -620,16 +620,7 @@ app.post("/graph/order", async (req, res) => {
     console.log(`There was an error fetching orders: ${e}`);
   }
 
-  let wrikeTitles;
   let client;
-  // connect to mongo
-  try {
-    client = new MongoClient(process.env.mongoURL);
-    const db = client.db(process.env.mongoDB);
-    wrikeTitles = db.collection(process.env.mongoOrderCollection);
-  } catch (error) {
-    console.error(`there was an error connecting to mongo: ${error}`);
-  }
 
   try {
     for (let order of orderData) {
@@ -638,6 +629,7 @@ app.post("/graph/order", async (req, res) => {
       if (order.createdBy.user.displayName == "System") {
         console.log("this was created from a Wrike item");
 
+        // TODO: add a salt here
         const fileHash = crypto
           .createHash("sha256")
           .update(order.fields.FileLeafRef)
@@ -645,7 +637,7 @@ app.post("/graph/order", async (req, res) => {
         // Get mongo entry for given resource id
         wrikeTitles.findOneAndUpdate(
           { content: fileHash },
-          { $set: { graphID: order.id } }
+          { $set: { graphID: order.id, salt: salt, iterations: iterations } }
         );
         continue;
       }
@@ -675,18 +667,43 @@ app.post("/graph/order", async (req, res) => {
     console.error(`there was an error iterating order: ${e}`);
   }
   try {
-    await Promise.all(
-      currentHistory.map(async (or) => {
-        await processOrder(or, wrikeTitles);
-      })
-    );
+    client = new MongoClient(process.env.mongoURL);
+    const db = client.db(process.env.mongoDB);
+    const wrikeTitles = db.collection(process.env.mongoRFQCollection);
+
+    const processPromises = currentHistory.map(async (rfq) => {
+      try {
+        return await processOrder(rfq, wrikeTitles);
+      } catch (e) {
+        console.error(
+          `there was an issue processing RFQs (in route /graph/rfq): ${e} \n ${e.stack}`
+        );
+        return false;
+      }
+    });
+
+    await Promise.all(processPromises);
   } catch (e) {
-    console.error(`there was an error mapping order: ${e} ${e.stack}`);
+    console.log(`error mapping rfq: ${e}`);
   } finally {
     if (client) {
+      console.log(`closing client...`);
       await client.close();
     }
   }
+  // try {
+  //   await Promise.all(
+  //     currentHistory.map(async (or) => {
+  //       await processOrder(or, wrikeTitles);
+  //     })
+  //   );
+  // } catch (e) {
+  //   console.error(`there was an error mapping order: ${e} ${e.stack}`);
+  // } finally {
+  //   if (client) {
+  //     await client.close();
+  //   }
+  // }
   res.status(200).send("good");
 });
 
