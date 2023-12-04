@@ -405,14 +405,28 @@ app.post("/wrike/order/delete", async (req, res) => {
 
 // ! This route will be used to clean up untracked RFQ's. Only trigger manually.
 app.post("/rfq/sync", async (req, res) => {
-  await syncWrikeToCollection(
-    process.env.wrike_folder_rfq,
-    process.env.mongoRFQCollection
-  );
+  try {
+    await syncWrikeToCollection(
+      process.env.wrike_folder_rfq,
+      process.env.mongoRFQCollection
+    );
+  } catch (error) {
+    console.error(`something went wrong: ${error}`);
+  }
   res.status(200).send();
 });
 
-app.post("/order/sync", async (req, res) => {});
+app.post("/order/sync", async (req, res) => {
+  try {
+    await syncWrikeToCollection(
+      process.env.wrike_folder_orders,
+      process.env.mongoOrderCollection
+    );
+  } catch (error) {
+    console.error(`something went wrong: ${error}`);
+  }
+  res.status(200).send();
+});
 
 app.post("/graph/*", (req, res, next) => {
   if (req.url.includes("validationToken=")) {
@@ -744,7 +758,7 @@ async function syncWrikeToCollection(wrikeFolderID, collectionName) {
       const errorMessage = await response.text();
       console.error(`Failed to fetch tasks from Wrike: ${errorMessage}`);
     }
-    console.log(`deleted ${rfq} from wrike`);
+    console.log(`deleted ${item} from wrike`);
   });
 }
 
