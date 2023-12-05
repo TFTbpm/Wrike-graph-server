@@ -65,7 +65,7 @@ async function modifyUserFromWrike(
           id: parseInt(mongoEntry.graphID),
           type: "ADD",
           name: "null",
-          field: "assingee",
+          field: "assignee",
         });
       } else if (hook.removedResponsibles) {
         // get graph id from wrike id
