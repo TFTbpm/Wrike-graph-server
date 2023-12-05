@@ -9,7 +9,11 @@ const {
 } = require("./modules/wrike/task");
 const graphAccessData = require("./modules/graph/accessToken");
 const rateLimit = require("express-rate-limit");
-const { getRFQData, modifyUserFromWrike } = require("./modules/graph/rfq");
+const {
+  getRFQData,
+  modifyUserFromWrike,
+  modifyCustomFieldFromWrike,
+} = require("./modules/graph/rfq");
 const getDatasheets = require("./modules/graph/datasheet");
 const { getOrders, addOrder } = require("./modules/graph/order");
 const getOrderAttachment = require("./modules/wrike/getOrderAttachment");
@@ -265,7 +269,24 @@ app.post("/wrike/rfq/assignee", async (req, res) => {
 });
 
 app.post("/wrike/rfq/reviewer", async (req, res) => {
-  console.log(req.body);
+  // console.log(req.body);
+
+  try {
+    client = new MongoClient(process.env.mongoURL);
+    const db = client.db(process.env.mongoDB);
+    rfqCollection = db.collection(process.env.mongoRFQCollection);
+    users = db.collection(process.env.mongoUserColection);
+  } catch (error) {
+    console.error(`there was an issue accessing Mongo: ${error}`);
+  }
+
+  await modifyCustomFieldFromWrike(
+    req.body,
+    graphIDToWrikeID,
+    rfqCollection,
+    users
+  );
+
   res.status(202).send();
 });
 
@@ -416,7 +437,7 @@ app.post("/rfq/sync", async (req, res) => {
       process.env.mongoRFQCollection
     );
   } catch (error) {
-    console.error(`something went wrong: ${error}`);
+    console.error(`something went wrong: ${error} \n ${error.stack}`);
   }
   res.status(200).send();
 });
@@ -728,7 +749,7 @@ async function syncWrikeToCollection(wrikeFolderID, collectionName) {
     let match = items.data.find((r) => r.id == item.id);
     if (!match) {
       // ! Remove these from mongo
-      mongoRemovalArray.push(rfq.id);
+      mongoRemovalArray.push(item.id);
     }
   }
   let wrikeRemovalArray = [];
