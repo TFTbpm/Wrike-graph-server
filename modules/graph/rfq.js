@@ -132,20 +132,19 @@ async function modifyCustomFieldFromWrike(
   hooks,
   graphIDToWrikeID,
   collection,
-  users
+  users,
+  folder
 ) {
   let body;
   // pass in the array of custom statuses, the folderID, collection, graphIDToWrikeID, users collection,
   // connect to mongo
   // iterate through changed hooks
   try {
+    let mongoEntry;
     for (const hook of hooks) {
-      let mongoEntry;
-
       // Get mongo item of task ID
       try {
-        (mongoEntry = await collection.findOne({ id: hook.taskId })),
-          users.findOne({ id: hook.taskId });
+        mongoEntry = await collection.findOne({ id: hook.taskId });
       } catch (error) {
         throw new Error(
           `there was an issue fetching the mongo entry: ${error}`
@@ -153,7 +152,10 @@ async function modifyCustomFieldFromWrike(
       }
 
       // if adding a reviewer for rfq
-      if (hook.customFieldId == process.env.wrike_field_rfq_reviewer) {
+      if (
+        hook.customFieldId == process.env.wrike_field_reviewer &&
+        folder === "rfq"
+      ) {
         console.log("reviewer rfq hook");
         // if removing a reviewer
         if (hook.value === "") {
@@ -169,11 +171,11 @@ async function modifyCustomFieldFromWrike(
         } else {
           // get graph id from wrike id
           const foundKey = Object.keys(graphIDToWrikeID).find(
-            (key) => graphIDToWrikeID[key] === hook.value[0]
+            (key) => graphIDToWrikeID[key] === hook.value
           );
 
           if (!foundKey) {
-            console.log(`id is not stored! ID: ${hook.addedResponsibles}`);
+            console.log(`id is not stored! ID: ${hook.value}`);
             continue;
           }
 
@@ -191,13 +193,49 @@ async function modifyCustomFieldFromWrike(
 
           body = JSON.stringify({
             resource: "RFQ",
-            data: assignee.name,
+            data: reviewer.name,
             id: parseInt(mongoEntry.graphID),
             type: "ADD",
             name: "null",
             field: "reviewer",
           });
         }
+        // If modifying reviewer on datasheets
+      } else if (
+        hook.customFieldId == process.env.wrike_field_reviewer &&
+        folder === "datasheet"
+      ) {
+        console.log("ds hook");
+
+        const foundKey = Object.keys(graphIDToWrikeID).find(
+          (key) => graphIDToWrikeID[key] === hook.value
+        );
+
+        if (!foundKey) {
+          console.log(`id is not stored! ID: ${hook.value}`);
+          continue;
+        }
+
+        console.log("Found Key:", foundKey);
+
+        const reviewer = await users.findOne({ id: foundKey });
+
+        console.log("Reviewer:", reviewer.name);
+
+        if (!reviewer) {
+          console.log(`id is not stored! ID: ${hook.value}`);
+          continue;
+        }
+        // send data to power automate
+
+        body = JSON.stringify({
+          resource: "datasheet",
+          data: reviewer.name,
+          id: parseInt(mongoEntry.graphID),
+          type: "ADD",
+          name: "null",
+          field: "reviewer",
+        });
       }
     }
 

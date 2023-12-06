@@ -269,8 +269,9 @@ app.post("/wrike/rfq/assignee", async (req, res) => {
 });
 
 app.post("/wrike/rfq/reviewer", async (req, res) => {
-  // console.log(req.body);
-
+  let client;
+  let rfqCollection;
+  let users;
   try {
     client = new MongoClient(process.env.mongoURL);
     const db = client.db(process.env.mongoDB);
@@ -284,7 +285,8 @@ app.post("/wrike/rfq/reviewer", async (req, res) => {
     req.body,
     graphIDToWrikeID,
     rfqCollection,
-    users
+    users,
+    "rfq"
   );
 
   res.status(202).send();
@@ -347,6 +349,30 @@ app.post("/wrike/order", async (req, res) => {
     let end = performance.now();
     console.log(`time taken: ${(end - start) / 1000}s`);
   }
+  res.status(202).send();
+});
+
+app.post("/wrike/datasheet/reviewer", async (req, res) => {
+  let client;
+  let orderCollection;
+  let users;
+  try {
+    client = new MongoClient(process.env.mongoURL);
+    const db = client.db(process.env.mongoDB);
+    orderCollection = db.collection(process.env.mongoOrderCollection);
+    users = db.collection(process.env.mongoUserColection);
+  } catch (error) {
+    console.error(`there was an issue accessing Mongo: ${error}`);
+  }
+
+  await modifyCustomFieldFromWrike(
+    req.body,
+    graphIDToWrikeID,
+    orderCollection,
+    users,
+    "datasheet"
+  );
+
   res.status(202).send();
 });
 
