@@ -159,7 +159,7 @@ async function modifyCustomFieldFromWrike(
         hook.customFieldId == process.env.wrike_field_reviewer &&
         folder === "rfq"
       ) {
-        console.log("reviewer rfq hook");
+        console.log("reviewer rfq hook", hook.value);
         // if removing a reviewer
         if (hook.value === "") {
           body = JSON.stringify({
