@@ -111,6 +111,10 @@ const dsCustomStatuses = [
     id: "IEAF5SOTJMEEOFHM", //routed
     name: "Routed",
   },
+  {
+    id: "IEAF5SOTJMEEOFIM",
+    name: "Pending Start - Low Priority",
+  },
 ];
 const orderCustomStatuses = [
   {
@@ -352,7 +356,7 @@ app.post("/wrike/order", async (req, res) => {
   res.status(202).send();
 });
 
-app.post("/wrike/datasheet/reviewer", async (req, res) => {
+app.post("/wrike/datasheets/reviewer", async (req, res) => {
   let client;
   let orderCollection;
   let users;
@@ -609,22 +613,30 @@ app.post("/graph/datasheets", async (req, res) => {
       });
     });
   } catch (e) {
-    console.log(`there was an error iterating datasheets: ${e} \n data`);
+    console.log(`there was an error iterating datasheets: ${e} \n ${e.stack}`);
   }
+  let processPromises;
   try {
     client = new MongoClient(process.env.mongoURL);
     const db = client.db(process.env.mongoDB);
     const wrikeTitles = db.collection(process.env.mongoDatasheetCollection);
-    await Promise.all(
-      currentHistory.map(async (ds) => {
-        await processDataSheet(ds, wrikeTitles);
-      })
-    );
+
+    processPromises = currentHistory.map(async (ds) => {
+      try {
+        return await processDataSheet(ds, wrikeTitles);
+      } catch (e) {
+        console.error(
+          `there was an issue processing datasheets (in route /graph/datasheets): ${e} \n ${e.stack}`
+        );
+        return false;
+      }
+    });
+    await Promise.all(processPromises);
   } catch (e) {
     console.log(`error mapping datasheets: ${e}`);
   } finally {
     if (client) {
-      await client.close();
+      // await client.close();
     }
   }
 

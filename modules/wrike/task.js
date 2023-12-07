@@ -427,102 +427,117 @@ async function processRFQ(rfq, wrikeTitles) {
 }
 
 async function processDataSheet(datasheet, wrikeTitles) {
-  const title = await wrikeTitles.findOne({ title: datasheet.title });
-  if (title === null) {
+  let title;
+  return new Promise(async (resolve, reject) => {
     try {
-      createTask(
-        datasheet.title,
-        process.env.wrike_folder_datasheet_requests,
-        process.env.wrike_perm_access_token,
-        datasheet.description,
-        null,
-        datasheet.priority,
-        {
-          start: datasheet.startDate.slice(0, datasheet.startDate.length - 1),
-          duration: 4800,
-        },
-        null,
-        null,
-        null,
-        null,
-        datasheet.guide
-          ? [
-              {
-                id: wrikeCustomFields.Guide,
-                value: datasheet.guide,
-              },
-              {
-                id: wrikeCustomFields.Priority,
-                value: parseInt(datasheet.priorityNumber),
-              },
-            ]
-          : [
-              {
-                id: wrikeCustomFields.Priority,
-                value: parseInt(datasheet.priorityNumber),
-              },
-            ],
-        datasheet.status,
-        null
-      ).then((data) => {
-        console.log("new datasheet");
-        try {
-          wrikeTitles.insertOne({
-            title: datasheet.title,
-            id: data.data[0].id,
-          });
-        } catch (e) {
-          throw new Error(`Error while inserting datasheet: ${e}`);
-        }
-      });
-    } catch (e) {
-      console.log(`error creating datasheet: ${e}`);
+      title = await wrikeTitles.findOne({ title: datasheet.title });
+    } catch (error) {
+      console.error(
+        `there was an issue connecting to datasheet collection: ${error}`
+      );
+      reject(`there was an issue connecting to datasheet collection: ${error}`);
     }
-  } else {
-    try {
-      const taskID = title.id;
-      modifyTask(
-        taskID,
-        process.env.wrike_folder_datasheet_requests,
-        process.env.wrike_perm_access_token,
-        datasheet.description,
-        null,
-        datasheet.priority,
-        {
-          start: datasheet.startDate.slice(0, datasheet.startDate.length - 1),
-          duration: 4800,
-        },
-        null,
-        null,
-        null,
-        null,
-        datasheet.guide
-          ? [
-              {
-                id: wrikeCustomFields.Guide,
-                value: datasheet.guide,
-              },
-              {
-                id: wrikeCustomFields.Priority,
-                value: parseInt(datasheet.priorityNumber),
-              },
-            ]
-          : [
-              {
-                id: wrikeCustomFields.Priority,
-                value: parseInt(datasheet.priorityNumber),
-              },
-            ],
-        datasheet.status,
-        null,
-        null
-      ).then((data) => {
-        console.log("updated datasheet");
-      });
-    } catch (e) {
-      console.log(`error editing datasheet: ${e}`);
+    if (title === null) {
+      try {
+        createTask(
+          datasheet.title,
+          process.env.wrike_folder_datasheet_requests,
+          process.env.wrike_perm_access_token,
+          datasheet.description,
+          null,
+          datasheet.priority,
+          {
+            start: datasheet.startDate.slice(0, datasheet.startDate.length - 1),
+            duration: 4800,
+          },
+          null,
+          null,
+          null,
+          null,
+          datasheet.guide
+            ? [
+                {
+                  id: wrikeCustomFields.Guide,
+                  value: datasheet.guide,
+                },
+                {
+                  id: wrikeCustomFields.Priority,
+                  value: parseInt(datasheet.priorityNumber),
+                },
+              ]
+            : [
+                {
+                  id: wrikeCustomFields.Priority,
+                  value: parseInt(datasheet.priorityNumber),
+                },
+              ],
+          datasheet.status,
+          null
+        ).then((data) => {
+          console.log("new datasheet");
+          try {
+            wrikeTitles.insertOne({
+              title: datasheet.title,
+              id: data.data[0].id,
+            });
+            resolve("new datasheet added");
+          } catch (e) {
+            console.error(`Error while inserting datasheet: ${e}`);
+            reject(`Error while inserting datasheet: ${e}`);
+          }
+        });
+      } catch (e) {
+        console.error(`error creating datasheet: ${e}`);
+        reject(`error creating datasheet: ${e}`);
+      }
+    } else {
+      try {
+        const taskID = title.id;
+        modifyTask(
+          taskID,
+          process.env.wrike_folder_datasheet_requests,
+          process.env.wrike_perm_access_token,
+          datasheet.description,
+          null,
+          datasheet.priority,
+          {
+            start: datasheet.startDate.slice(0, datasheet.startDate.length - 1),
+            duration: 4800,
+          },
+          null,
+          null,
+          null,
+          null,
+          datasheet.guide
+            ? [
+                {
+                  id: wrikeCustomFields.Guide,
+                  value: datasheet.guide,
+                },
+                {
+                  id: wrikeCustomFields.Priority,
+                  value: parseInt(datasheet.priorityNumber),
+                },
+              ]
+            : [
+                {
+                  id: wrikeCustomFields.Priority,
+                  value: parseInt(datasheet.priorityNumber),
+                },
+              ],
+          datasheet.status,
+          null,
+          null
+        ).then((data) => {
+          console.log("updated datasheet");
+          resolve("new datasheet");
+        });
+      } catch (e) {
+        console.error(`error editing datasheet: ${e}`);
+        reject(`error editing datasheet: ${e}`);
+      }
     }
-  }
+  });
 }
 
 async function processOrder(order, wrikeTitles) {
