@@ -363,7 +363,7 @@ app.post("/wrike/datasheets/reviewer", async (req, res) => {
   try {
     client = new MongoClient(process.env.mongoURL);
     const db = client.db(process.env.mongoDB);
-    orderCollection = db.collection(process.env.mongoOrderCollection);
+    orderCollection = db.collection(process.env.mongoDatasheetCollection);
     users = db.collection(process.env.mongoUserColection);
   } catch (error) {
     console.error(`there was an issue accessing Mongo: ${error}`);
