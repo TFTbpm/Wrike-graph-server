@@ -61,11 +61,11 @@ async function modifyUserFromWrike(
 
         body = JSON.stringify({
           resource: "RFQ",
-          data: assignee.name,
+          data: assignee.id,
           id: parseInt(mongoEntry.graphID),
           type: "ADD",
           name: "null",
-          field: "assignee",
+          field: "AssignedId",
         });
       } else if (hook.removedResponsibles) {
         // get graph id from wrike id
@@ -91,7 +91,7 @@ async function modifyUserFromWrike(
 
         body = JSON.stringify({
           resource: "RFQ",
-          data: assignee.name,
+          data: assignee.id,
           id: parseInt(mongoEntry.graphID),
           type: "REMOVE",
           name: "null",
@@ -145,7 +145,9 @@ async function modifyCustomFieldFromWrike(
       // Get mongo item of task ID
       try {
         mongoEntry = await collection.findOne({ id: hook.taskId });
-        console.log(mongoEntry);
+        if (!mongoEntry) {
+          throw new Error(`cannot find order in mongo!`);
+        }
       } catch (error) {
         throw new Error(
           `there was an issue fetching the mongo entry: ${error}`
@@ -194,11 +196,11 @@ async function modifyCustomFieldFromWrike(
 
           body = JSON.stringify({
             resource: "RFQ",
-            data: reviewer.name,
+            data: reviewer.id,
             id: parseInt(mongoEntry.graphID),
             type: "ADD",
             name: "null",
-            field: "reviewer",
+            field: "ReviewerId",
           });
         }
         // If modifying reviewer on datasheets
@@ -231,11 +233,13 @@ async function modifyCustomFieldFromWrike(
 
         body = JSON.stringify({
           resource: "datasheet",
-          data: reviewer.name,
+          // This needs to be a string or else it gets rejected since other routes
+          //  require data to be a string
+          data: reviewer.id,
           id: parseInt(mongoEntry.graphID),
           type: "ADD",
           name: "null",
-          field: "reviewer",
+          field: "Guide_x002f_MentorId",
         });
       }
     }
@@ -253,6 +257,10 @@ async function modifyCustomFieldFromWrike(
         if (response.ok) {
           console.log("modified user information for custom field");
           return true;
+        } else {
+          throw new Error(
+            `response from server was not okay: ${await response.text()}`
+          );
         }
       } catch (error) {
         throw new Error(`there was an error modifying responsbles: ${error}`);

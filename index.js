@@ -285,13 +285,17 @@ app.post("/wrike/rfq/reviewer", async (req, res) => {
     console.error(`there was an issue accessing Mongo: ${error}`);
   }
 
-  await modifyCustomFieldFromWrike(
-    req.body,
-    graphIDToWrikeID,
-    rfqCollection,
-    users,
-    "rfq"
-  );
+  try {
+    await modifyCustomFieldFromWrike(
+      req.body,
+      graphIDToWrikeID,
+      rfqCollection,
+      users,
+      "rfq"
+    );
+  } catch (error) {
+    console.error(error);
+  }
 
   res.status(202).send();
 });
