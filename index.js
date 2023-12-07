@@ -587,7 +587,7 @@ app.post("/graph/datasheets", async (req, res) => {
     console.log(`There was an error fetching datasheets: ${e}`);
   }
   try {
-    datasheetData.value.forEach((datasheet) => {
+    datasheetData.forEach((datasheet) => {
       currentHistory.push({
         title: `(DS) ${datasheet.fields.Title}` || null,
         description: null,
@@ -609,11 +609,7 @@ app.post("/graph/datasheets", async (req, res) => {
       });
     });
   } catch (e) {
-    console.log(
-      `there was an error iterating datasheets: ${e} \n data: ${JSON.stringify(
-        datasheetData
-      )}`
-    );
+    console.log(`there was an error iterating datasheets: ${e} \n data`);
   }
   try {
     client = new MongoClient(process.env.mongoURL);

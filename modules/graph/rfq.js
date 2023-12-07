@@ -250,7 +250,7 @@ async function modifyCustomFieldFromWrike(
           },
         });
         if (response.ok) {
-          console.log("modified user information for rfq");
+          console.log("modified user information for custom field");
           return true;
         }
       } catch (error) {
@@ -261,10 +261,10 @@ async function modifyCustomFieldFromWrike(
     }
   } catch (error) {
     console.error(
-      `There was an error processing the rfq: ${error}\n ${error.stack}`
+      `There was an error processing the custom field data: ${error}\n ${error.stack}`
     );
     throw new Error(
-      `There was an error processing the rfq: ${error}\n ${error.stack}`
+      `There was an error processing the custom field data: ${error}\n ${error.stack}`
     );
   }
 }
