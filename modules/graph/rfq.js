@@ -145,6 +145,7 @@ async function modifyCustomFieldFromWrike(
       // Get mongo item of task ID
       try {
         mongoEntry = await collection.findOne({ id: hook.taskId });
+        console.log(mongoEntry);
       } catch (error) {
         throw new Error(
           `there was an issue fetching the mongo entry: ${error}`

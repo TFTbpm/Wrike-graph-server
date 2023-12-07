@@ -592,6 +592,7 @@ app.post("/graph/datasheets", async (req, res) => {
   }
   try {
     datasheetData.forEach((datasheet) => {
+      // console.log(JSON.stringify(datasheet) + "\n");
       currentHistory.push({
         title: `(DS) ${datasheet.fields.Title}` || null,
         description: null,
@@ -610,6 +611,7 @@ app.post("/graph/datasheets", async (req, res) => {
             null
           : null,
         startDate: datasheet.createdDateTime,
+        graphID: datasheet.id,
       });
     });
   } catch (e) {

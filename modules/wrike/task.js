@@ -479,6 +479,7 @@ async function processDataSheet(datasheet, wrikeTitles) {
             wrikeTitles.insertOne({
               title: datasheet.title,
               id: data.data[0].id,
+              graphID: datasheet.graphID,
             });
             resolve("new datasheet added");
           } catch (e) {
@@ -529,6 +530,10 @@ async function processDataSheet(datasheet, wrikeTitles) {
           null,
           null
         ).then((data) => {
+          wrikeTitles.findOneAndUpdate(
+            { id: data.data[0].id },
+            { $set: { graphID: datasheet.graphID } }
+          );
           console.log("updated datasheet");
           resolve("new datasheet");
         });
