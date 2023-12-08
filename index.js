@@ -260,7 +260,7 @@ app.post("/wrike/*", header("X-Hook-Secret").notEmpty(), (req, res, next) => {
   }
 });
 
-app.post("/wrike/rfq/assignee", addAPIIdToReq, async (req, res) => {
+app.post("/wrike/rfq/assignee", async (req, res) => {
   let wrikeTitles;
   let users;
   let client;
@@ -386,7 +386,7 @@ app.post("/wrike/order", async (req, res) => {
 });
 
 // Datasheet reviewer
-app.post("/wrike/datasheets/reviewer", async (req, res) => {
+app.post("/wrike/datasheets/reviewer", addAPIIdToReq, async (req, res) => {
   let client;
   let orderCollection;
   let users;
