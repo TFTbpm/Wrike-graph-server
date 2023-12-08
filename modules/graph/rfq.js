@@ -47,7 +47,7 @@ async function modifyUserFromWrike(
 
         console.log("Found Key:", foundKey);
 
-        const assignee = await users.findOne({ id: foundKey });
+        const assignee = await users.findOne({ graphId: foundKey });
 
         console.log("Assignee:", assignee.name);
 
@@ -59,7 +59,7 @@ async function modifyUserFromWrike(
 
         body = JSON.stringify({
           resource: "RFQ",
-          data: assignee.id,
+          data: `${assignee.graphId}`,
           id: parseInt(mongoEntry.graphID),
           type: "ADD",
           name: "null",
@@ -89,7 +89,7 @@ async function modifyUserFromWrike(
 
         body = JSON.stringify({
           resource: "RFQ",
-          data: assignee.id,
+          data: `${assignee.graphId}`,
           id: parseInt(mongoEntry.graphID),
           type: "REMOVE",
           name: "null",
@@ -182,7 +182,7 @@ async function modifyCustomFieldFromWrike(
 
           console.log("Found Key:", foundKey);
 
-          const reviewer = await users.findOne({ id: foundKey });
+          const reviewer = await users.findOne({ graphId: foundKey });
 
           console.log("Reviewer:", reviewer.name);
 
@@ -194,7 +194,7 @@ async function modifyCustomFieldFromWrike(
 
           body = JSON.stringify({
             resource: "RFQ",
-            data: reviewer.id,
+            data: reviewer.graphId,
             id: parseInt(mongoEntry.graphID),
             type: "ADD",
             name: "null",
@@ -233,7 +233,7 @@ async function modifyCustomFieldFromWrike(
           resource: "datasheet",
           // This needs to be a string or else it gets rejected since other routes
           //  require data to be a string
-          data: reviewer.id,
+          data: reviewer.grahpId,
           id: parseInt(mongoEntry.graphID),
           type: "ADD",
           name: "null",
@@ -243,6 +243,7 @@ async function modifyCustomFieldFromWrike(
     }
 
     if (body) {
+      console.log(body);
       try {
         // console.log(body);
         const response = await fetch(process.env.graph_power_automate_uri, {

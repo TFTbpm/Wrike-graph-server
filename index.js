@@ -21,6 +21,7 @@ const { MongoClient } = require("mongodb");
 const {
   mapWrikeUsersToGraphIDs,
   syncWrikeToCollection,
+  findAndAddWrikeUID,
 } = require("./modules/Sync");
 
 // dotenv config
@@ -169,6 +170,25 @@ app.use(limiter);
 
 app.set("trust proxy", 1);
 
+const addAPIIdToReq = async (req, res, next) => {
+  try {
+    if (req.body[0].value == '""') {
+      next();
+    }
+    const result = await findAndAddWrikeUID(req.body[0].value);
+    console.log(`res ${JSON.stringify(result)}`);
+
+    // Modify the 'req' object to include the user information
+    req.body[0].value = result.wrikeUser;
+
+    // Call next middleware in the stack
+    next();
+  } catch (error) {
+    console.error(`Error in findAndAddWrikeUIDMiddleware: ${error}`);
+    res.status(500).json({ success: false, error: "Internal server error" });
+  }
+};
+
 // just used to verify the server is running
 app.get("/", (req, res) => {
   res.send("up on /");
@@ -240,10 +260,6 @@ app.post("/wrike/*", header("X-Hook-Secret").notEmpty(), (req, res, next) => {
   }
 });
 
-// TODO: this below
-// middleware for all wrike hooks to map hook id to user id and add to db
-// assumption is that all "/wrike/* " is going to be retrieving from hooks
-
 app.post("/wrike/rfq/assignee", async (req, res) => {
   let wrikeTitles;
   let users;
@@ -280,7 +296,8 @@ app.post("/wrike/rfq/assignee", async (req, res) => {
   }
 });
 
-app.post("/wrike/rfq/reviewer", async (req, res) => {
+// RFQ reviewer
+app.post("/wrike/rfq/reviewer", addAPIIdToReq, async (req, res) => {
   let client;
   let rfqCollection;
   let users;
@@ -368,6 +385,7 @@ app.post("/wrike/order", async (req, res) => {
   res.status(202).send();
 });
 
+// Datasheet reviewer
 app.post("/wrike/datasheets/reviewer", async (req, res) => {
   let client;
   let orderCollection;

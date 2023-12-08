@@ -152,17 +152,22 @@ async function findAndAddWrikeUID(UID) {
   let mongoUser = await users.findOne({ wrikeHookId: UID });
 
   if (mongoUser) {
+    console.log("found user");
     return mongoUser;
   }
 
   try {
     // plug UID into wrike endpoint
-    let response = await fetch(`${wrikeURI}/ids?ids=[${UID}]&type=ApiV2User`);
+    let response = await fetch(
+      `${wrikeURI}/ids?ids=[${UID}]&type=ApiV2User`,
+      requestOptions
+    );
     if (!response.ok) {
       throw new Error(`response error: ${await response.text()}`);
     }
     data = await response.json();
-  } catch {
+    console.log(data);
+  } catch (error) {
     console.error(`there was an error fetching the wrike ID: ${error}`);
   }
 
@@ -172,7 +177,7 @@ async function findAndAddWrikeUID(UID) {
 
   // use returned id to map UID to user as wrikeHookId
   mongoUser = await users.findOneAndUpdate(
-    { wrikeUser: data.data.id },
+    { wrikeUser: data.data[0].id },
     { $set: { wrikeHookId: UID } }
   );
 
