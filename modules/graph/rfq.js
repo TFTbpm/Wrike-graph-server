@@ -1,5 +1,3 @@
-const { MongoClient } = require("mongodb");
-
 async function getRFQData(site_id, list_id, access_token) {
   const url = `https://graph.microsoft.com/v1.0/sites/${site_id}/lists/${list_id}/items?filter=contentType/name eq 'Request for Quote'&expand=fields&orderby=fields/Modified%20desc&top=5`;
   const requestOptions = {
@@ -161,7 +159,7 @@ async function modifyCustomFieldFromWrike(
       ) {
         console.log("reviewer rfq hook", hook);
         // if removing a reviewer
-        if (hook.value === "") {
+        if (hook.value === '""') {
           body = JSON.stringify({
             resource: "RFQ",
             data: "null",
