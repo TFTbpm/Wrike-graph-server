@@ -12,12 +12,7 @@ async function getRFQData(site_id, list_id, access_token) {
 }
 
 // TODO: generalize this
-async function modifyUserFromWrike(
-  hooks,
-  graphIDToWrikeID,
-  dataCollection,
-  users
-) {
+async function modifyUserFromWrike(hooks, dataCollection, users) {
   let body;
   try {
     for (const hook of hooks) {
@@ -36,20 +31,19 @@ async function modifyUserFromWrike(
       // if adding an assignee
       if (hook.addedResponsibles) {
         // get graph id from wrike id
-        const foundKey = Object.keys(graphIDToWrikeID).find(
-          (key) => graphIDToWrikeID[key] === hook.addedResponsibles[0]
-        );
+        // const foundKey = Object.keys(graphIDToWrikeID).find(
+        //   (key) => graphIDToWrikeID[key] === hook.addedResponsibles[0]
+        // );
+        const foundKey = await users.findOne({
+          wrikeUser: hook.addedResponsibles[0],
+        });
+
+        console.log(foundKey);
 
         if (!foundKey) {
           console.log(`id is not stored! ID: ${hook.addedResponsibles}`);
           continue;
         }
-
-        console.log("Found Key:", foundKey);
-
-        const assignee = await users.findOne({ graphId: foundKey });
-
-        console.log("Assignee:", assignee.name);
 
         if (!assignee) {
           console.log(`id is not stored! ID: ${hook.addedResponsibles}`);
@@ -67,20 +61,18 @@ async function modifyUserFromWrike(
         });
       } else if (hook.removedResponsibles) {
         // get graph id from wrike id
-        const foundKey = Object.keys(graphIDToWrikeID).find(
-          (key) => graphIDToWrikeID[key] === hook.removedResponsibles[0]
-        );
+        // const foundKey = Object.keys(graphIDToWrikeID).find(
+        //   (key) => graphIDToWrikeID[key] === hook.removedResponsibles[0]
+        // );
+        const foundKey = await users.findOne({
+          wrikeUser: hook.removedResponsibles[0],
+        });
+        console.log(foundKey);
 
         if (!foundKey) {
           console.log(`id is not stored! ID: ${hook.removedResponsibles}`);
           continue;
         }
-
-        console.log("Found Key:", foundKey);
-
-        const assignee = await users.findOne({ id: foundKey });
-
-        console.log("Assignee:", assignee);
 
         if (!assignee) {
           console.log(`id is not stored! ID: ${hook.removedResponsibles}`);

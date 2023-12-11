@@ -277,12 +277,7 @@ app.post("/wrike/rfq/assignee", async (req, res) => {
   }
 
   try {
-    result = await modifyUserFromWrike(
-      req.body,
-      graphIDToWrikeID,
-      wrikeTitles,
-      users
-    );
+    result = await modifyUserFromWrike(req.body, wrikeTitles, users);
   } catch (e) {
     console.log(e);
   }
