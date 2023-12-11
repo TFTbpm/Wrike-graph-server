@@ -171,13 +171,13 @@ async function findAndAddWrikeUID(UID) {
     console.error(`there was an error fetching the wrike ID: ${error}`);
   }
 
-  if (!data) {
+  if (!data || data.length == 0) {
     return;
   }
 
   // use returned id to map UID to user as wrikeHookId
   mongoUser = await users.findOneAndUpdate(
-    { wrikeUser: data.data[0].id },
+    { wrikeUser: data.data[0]?.id },
     { $set: { wrikeHookId: UID } }
   );
 

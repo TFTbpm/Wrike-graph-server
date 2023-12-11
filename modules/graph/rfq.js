@@ -217,11 +217,7 @@ async function modifyCustomFieldFromWrike(
           continue;
         }
 
-        console.log("Found Key:", foundKey);
-
         const reviewer = await users.findOne({ id: foundKey });
-
-        console.log("Reviewer:", reviewer.name);
 
         if (!reviewer) {
           console.log(`id is not stored! ID: ${hook.value}`);
@@ -243,7 +239,6 @@ async function modifyCustomFieldFromWrike(
     }
 
     if (body) {
-      console.log(body);
       try {
         // console.log(body);
         const response = await fetch(process.env.graph_power_automate_uri, {
