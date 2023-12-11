@@ -578,7 +578,7 @@ app.post("/graph/rfq", async (req, res) => {
       internalDueDate:
         element.fields.Internal_x0020_Due_x0020_Date ||
         element.fields.Customer_x0020_Requested_x0020_Date,
-      startDate: element.createdDateTime,
+      startDate: startDate,
       numberOfLineItems: element.fields.Number_x0020_of_x0020_Line_x0020_Items,
       priority:
         graphRFQPriorityToWrikeImportance[element.fields.Priority] ||
