@@ -551,21 +551,21 @@ app.post("/graph/rfq", async (req, res) => {
   rfqData.value.forEach((element) => {
     // some rfqs are input after they're due, in which case start date needs to move to due date:
 
-    const startDate = new Date(element.createdDateTime + "Z");
+    let startDate = new Date(element.createdDateTime + "Z");
     const internalDueDate = new Date(
       element.fields.Internal_x0020_Due_x0020_Date + "Z"
     );
     const requestedDate = new Date(
       element.fields.Customer_x0020_Requested_x0020_Date + "Z"
     );
+
+    // if start date is after either then set the start date to that date
     startDate =
       requestedDate < startDate || internalDueDate < startDate
         ? requestedDate < internalDueDate
           ? element.fields.Customer_x0020_Requested_x0020_Date
           : element.fields.Internal_x0020_Due_x0020_Date
         : element.createdDateTime;
-
-    // if start date is after either then set the start date to that date
 
     currentHistory.push({
       title: element.fields.Title,
