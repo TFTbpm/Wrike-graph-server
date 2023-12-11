@@ -561,8 +561,9 @@ app.post("/graph/rfq", async (req, res) => {
 
     // if start date is after either then set the start date to that date
     startDate =
-      requestedDate < startDate || internalDueDate < startDate
-        ? requestedDate < internalDueDate
+      requestedDate.getTime() < startDate.getTime() ||
+      internalDueDate.getTime() < startDate.getTime()
+        ? requestedDate.getTime() < internalDueDate.getTime()
           ? element.fields.Customer_x0020_Requested_x0020_Date
           : element.fields.Internal_x0020_Due_x0020_Date
         : element.createdDateTime;
@@ -595,7 +596,6 @@ app.post("/graph/rfq", async (req, res) => {
     });
   });
   let client;
-  let processPromises;
 
   try {
     client = new MongoClient(process.env.mongoURL);
