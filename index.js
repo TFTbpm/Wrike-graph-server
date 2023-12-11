@@ -549,6 +549,15 @@ app.post("/graph/rfq", async (req, res) => {
   // TODO: get custom statuses, get customers (CF), add reveiwer to custom field reviewer
   // Puts all the elements in an easy to read format
   rfqData.value.forEach((element) => {
+    // some rfqs are input after they're due, in which case start date needs to move to due date:
+    if (
+      new Date(element.createdDateTime + "Z") <
+      new Date(element.fields.Internal_x0020_Due_x0020_Date + "Z")
+    ) {
+      element.createdDateTime = element.fields.Internal_x0020_Due_x0020_Date;
+      console.log("moved start date to due date");
+    }
+
     currentHistory.push({
       title: element.fields.Title,
       url: element.fields._dlc_DocIdUrl.Url,

@@ -78,16 +78,18 @@ async function createTask(
 
       const queryString = queryParams.join("&");
 
-      URI = `https://www.wrike.com/api/v4/folders/${folderId}/tasks?${queryString}`;
-      // console.log(`URL: ${URL} \n tokentype:${typeof access_token}`);
-
-      const response = await fetch(URI, {
+      const requestOptions = {
         method: "POST",
         headers: {
           Authorization: `Bearer ${access_token}`,
           "Content-Type": "application/json",
         },
-      });
+      };
+
+      URI = `https://www.wrike.com/api/v4/folders/${folderId}/tasks?${queryString}`;
+      // console.log(`URL: ${URL} \n tokentype:${typeof access_token}`);
+
+      const response = await fetch(URI, requestOptions);
       // console.log(response);
 
       if (!response.ok) {
