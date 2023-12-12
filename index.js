@@ -625,9 +625,12 @@ app.post("/graph/rfq", async (req, res) => {
 });
 
 app.post("/graph/datasheets", async (req, res) => {
+  let client;
+  let users;
+  let wrikeTitles;
   let currentHistory = [];
-  const accessData = await graphAccessData();
   let datasheetData;
+  const accessData = await graphAccessData();
   try {
     datasheetData = await getDatasheets(
       process.env.graph_site_id_sales,
@@ -637,8 +640,24 @@ app.post("/graph/datasheets", async (req, res) => {
   } catch (e) {
     console.log(`There was an error fetching datasheets: ${e}`);
   }
+
+  try {
+    client = new MongoClient(process.env.mongoURL);
+    const db = client.db(process.env.mongoDB);
+    wrikeTitles = db.collection(process.env.mongoDatasheetCollection);
+    users = db.collection(process.env.mongoUserColection);
+  } catch (error) {
+    console.error(
+      `there was an error connecting to mongo (/graph/datasheets): ${error}`
+    );
+  }
+
   try {
     datasheetData.forEach((datasheet) => {
+      let author = users.findOne({ graphId: datasheet.fields.Author0LookupId });
+      let guide = users.findOne({
+        graphId: datasheet.fields.Guide_x002f_Mentor?.LookupId,
+      });
       // console.log(JSON.stringify(datasheet) + "\n");
       currentHistory.push({
         title: `(DS) ${datasheet.fields.Title}` || null,
@@ -646,17 +665,14 @@ app.post("/graph/datasheets", async (req, res) => {
         priority:
           graphDSPriorityToWrikeImportance[datasheet.fields.field_5] ||
           graphDSPriorityToWrikeImportance.Medium,
-        assignee: graphIDToWrikeID[datasheet.fields.Author0LookupId] || null,
+        assignee: author,
         status:
           dsCustomStatuses.filter((s) => s.name == datasheet.fields.Status)[0]
             .id ||
           "IEAF5SOTJMEEOFGO" ||
           null,
         priorityNumber: datasheet.fields.Priority_x0023_ || null,
-        guide: datasheet.fields.Guide_x002f_Mentor
-          ? graphIDToWrikeID[datasheet.fields.Guide_x002f_Mentor.LookupId] ||
-            null
-          : null,
+        guide: guide,
         startDate: datasheet.createdDateTime,
         graphID: datasheet.id,
       });
@@ -666,13 +682,9 @@ app.post("/graph/datasheets", async (req, res) => {
   }
   let processPromises;
   try {
-    client = new MongoClient(process.env.mongoURL);
-    const db = client.db(process.env.mongoDB);
-    const wrikeTitles = db.collection(process.env.mongoDatasheetCollection);
-
     processPromises = currentHistory.map(async (ds) => {
       try {
-        return await processDataSheet(ds, wrikeTitles);
+        return await processDataSheet(ds, wrikeTitles, users);
       } catch (e) {
         console.error(
           `there was an issue processing datasheets (in route /graph/datasheets): ${e} \n ${e.stack}`
@@ -685,7 +697,7 @@ app.post("/graph/datasheets", async (req, res) => {
     console.log(`error mapping datasheets: ${e}`);
   } finally {
     if (client) {
-      // await client.close();
+      await client.close();
     }
   }
 

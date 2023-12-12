@@ -444,7 +444,7 @@ async function processRFQ(rfq, wrikeTitles, users) {
   });
 }
 
-async function processDataSheet(datasheet, wrikeTitles) {
+async function processDataSheet(datasheet, wrikeTitles, users) {
   let title;
   return new Promise(async (resolve, reject) => {
     try {
