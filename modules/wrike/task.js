@@ -252,7 +252,7 @@ async function getTasks(taskId, access_token) {
 }
 
 // TODO: update the given RFQ if found and replace title, check for both title and rfq.id  (ln 275)
-async function processRFQ(rfq, wrikeTitles) {
+async function processRFQ(rfq, wrikeTitles, users) {
   return new Promise(async (resolve, reject) => {
     // TODO: Move most of these to custom fields
 
@@ -270,9 +270,24 @@ async function processRFQ(rfq, wrikeTitles) {
     `;
 
     let title;
+    let userIdArr = [];
     try {
       await performMongoOperation(async () => {
         title = await wrikeTitles.findOne({ graphID: rfq.id });
+      });
+    } catch (error) {
+      console.log(`MongoDB operation failed after multiple retries: ${error}`);
+      reject(error);
+    }
+    try {
+      let allUsers;
+      await performMongoOperation(async () => {
+        allUsers = await users.find();
+      });
+      allUsers.forEach((user) => {
+        if (user.wrikeUser) {
+          userIdArr.push(user.wrikeUser);
+        }
       });
     } catch (error) {
       console.log(`MongoDB operation failed after multiple retries: ${error}`);
@@ -398,7 +413,8 @@ async function processRFQ(rfq, wrikeTitles) {
             : null,
           rfq.status,
           null,
-          [...(rfq.assinged == null ? Object.values(graphIDToWrikeID) : [])],
+          // This is required to remove ALL responsibles, we basically go through the entire user collection
+          [...(rfq.assinged == null ? userIdArr : [])],
           `(RFQ) ${rfq.title}`
         );
         try {

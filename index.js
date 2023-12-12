@@ -526,6 +526,20 @@ app.post("/graph/*", (req, res, next) => {
 
 app.post("/graph/rfq", async (req, res) => {
   let currentHistory = [];
+  let client;
+  let wrikeTitles;
+  let users;
+
+  try {
+    client = new MongoClient(process.env.mongoURL);
+    const db = client.db(process.env.mongoDB);
+    wrikeTitles = db.collection(process.env.mongoRFQCollection);
+    users = bc.collection(process.env.mongoUserColection);
+  } catch (error) {
+    console.error(
+      `there was an error connecting to mongo (/graph/rfq): ${error}`
+    );
+  }
 
   const accessData = await graphAccessData();
   let rfqData = await getRFQData(
@@ -537,6 +551,8 @@ app.post("/graph/rfq", async (req, res) => {
   // TODO: get custom statuses, get customers (CF), add reveiwer to custom field reviewer
   // Puts all the elements in an easy to read format
   rfqData.value.forEach((element) => {
+    let reviewer = users.findOne({ graphId: element.fields.ReviewerLookupId });
+    let assigned = users.findOne({ graphId: element.fields.AssignedLookupId });
     // some rfqs are input after they're due, in which case start date needs to move to due date:
 
     let startDate = new Date(element.createdDateTime);
@@ -579,20 +595,15 @@ app.post("/graph/rfq", async (req, res) => {
       submissionMethod: element.fields.Submission_x0020_Method,
       modified: element.fields.Modified,
       id: element.id,
-      assinged: graphIDToWrikeID[element.fields.AssignedLookupId] || null,
-      reviewer: graphIDToWrikeID[element.fields.ReviewerLookupId] || null,
+      assinged: assigned,
+      reviewer: reviewer,
     });
   });
-  let client;
 
   try {
-    client = new MongoClient(process.env.mongoURL);
-    const db = client.db(process.env.mongoDB);
-    const wrikeTitles = db.collection(process.env.mongoRFQCollection);
-
     const processPromises = currentHistory.map(async (rfq) => {
       try {
-        return await processRFQ(rfq, wrikeTitles);
+        return await processRFQ(rfq, wrikeTitles, users);
       } catch (e) {
         console.error(
           `there was an issue processing RFQs (in route /graph/rfq): ${e} \n ${e.stack}`
