@@ -154,7 +154,6 @@ const graphDSPriorityToWrikeImportance = {
   Low: "Low",
   Critical: "High",
 };
-const graphIDToWrikeID = { 12: "KUAQZDX2", 189: "KUARCPVF", 832: "KUAQ3CVX" };
 
 // This will prevent DDoS
 const limiter = rateLimit({
@@ -706,9 +705,12 @@ app.post("/graph/datasheets", async (req, res) => {
 
 app.post("/graph/order", async (req, res) => {
   // Graph sends this once a new order is created
+  let client;
+  let users;
+  let wrikeTitles;
   let currentHistory = [];
-  const accessData = await graphAccessData();
   const skipToken = process.env.graph_order_skip_token;
+  const accessData = await graphAccessData();
   try {
     orderData = await getOrders(
       process.env.graph_site_id_sales,
@@ -720,11 +722,20 @@ app.post("/graph/order", async (req, res) => {
     console.log(`There was an error fetching orders: ${e}`);
   }
 
-  let client;
+  try {
+    client = new MongoClient(process.env.mongoURL);
+    const db = client.db(process.env.mongoDB);
+    wrikeTitles = db.collection(process.env.mongoRFQCollection);
+    users = db.collection(process.env.mongoUserColection);
+  } catch (error) {
+    console.error(
+      `there was an issue connecting to mongo (/graph/order): ${error}`
+    );
+  }
 
   try {
     for (let order of orderData) {
-      // console.log(order.createdBy.user.displayName);
+      let author = users.findOne({ graphId: order.fields.AuthorLookupId });
       // ! with the time limit on vercel, there's no other way to know whether it was created by the API or not
       if (order.createdBy.user.displayName == "System") {
         console.log("this was created from a Wrike item");
@@ -747,13 +758,13 @@ app.post("/graph/order", async (req, res) => {
       <br> PO number: ${order.fields.PONumber || "none"} 
       <br> SO number: ${order.fields.SONumber || "none"}
       <br> Customer: ${order.fields.CustomerName || "none"}
-      <br> Author: ${graphIDToWrikeID[order.fields.AuthorLookupId] || "null"}`;
+      <br> Author: ${author}`;
 
       currentHistory.push({
         title: order.fields.FileLeafRef || null,
         url: order.fields._dlc_DocIdUrl.url || null,
         startDate: order.createdDateTime || null,
-        author: graphIDToWrikeID[order.fields.AuthorLookupId] || null,
+        author: author,
         customerName: order.fields.CustomerName || null,
         poType: order.fields.POType || null,
         shipToSite: order.fields.ShipToSite || null,
@@ -767,10 +778,6 @@ app.post("/graph/order", async (req, res) => {
     console.error(`there was an error iterating order: ${e}`);
   }
   try {
-    client = new MongoClient(process.env.mongoURL);
-    const db = client.db(process.env.mongoDB);
-    const wrikeTitles = db.collection(process.env.mongoRFQCollection);
-
     const processPromises = currentHistory.map(async (rfq) => {
       try {
         return await processOrder(rfq, wrikeTitles);
