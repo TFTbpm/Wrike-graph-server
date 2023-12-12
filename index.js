@@ -390,7 +390,6 @@ app.post("/wrike/datasheets/reviewer", addAPIIdToReq, async (req, res) => {
 
   await modifyCustomFieldFromWrike(
     req.body,
-    graphIDToWrikeID,
     orderCollection,
     users,
     "datasheet"
