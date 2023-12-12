@@ -533,7 +533,7 @@ app.post("/graph/rfq", async (req, res) => {
     client = new MongoClient(process.env.mongoURL);
     const db = client.db(process.env.mongoDB);
     wrikeTitles = db.collection(process.env.mongoRFQCollection);
-    users = bc.collection(process.env.mongoUserColection);
+    users = db.collection(process.env.mongoUserColection);
   } catch (error) {
     console.error(
       `there was an error connecting to mongo (/graph/rfq): ${error}`
@@ -549,9 +549,13 @@ app.post("/graph/rfq", async (req, res) => {
 
   // TODO: get custom statuses, get customers (CF), add reveiwer to custom field reviewer
   // Puts all the elements in an easy to read format
-  rfqData.value.forEach((element) => {
-    let reviewer = users.findOne({ graphId: element.fields.ReviewerLookupId });
-    let assigned = users.findOne({ graphId: element.fields.AssignedLookupId });
+  rfqData.value.forEach(async (element) => {
+    let reviewer = await users.findOne({
+      graphId: element.fields.ReviewerLookupId,
+    });
+    let assigned = await users.findOne({
+      graphId: element.fields.AssignedLookupId,
+    });
     // some rfqs are input after they're due, in which case start date needs to move to due date:
 
     let startDate = new Date(element.createdDateTime);
@@ -652,9 +656,11 @@ app.post("/graph/datasheets", async (req, res) => {
   }
 
   try {
-    datasheetData.forEach((datasheet) => {
-      let author = users.findOne({ graphId: datasheet.fields.Author0LookupId });
-      let guide = users.findOne({
+    datasheetData.forEach(async (datasheet) => {
+      let author = await users.findOne({
+        graphId: datasheet.fields.Author0LookupId,
+      });
+      let guide = await users.findOne({
         graphId: datasheet.fields.Guide_x002f_Mentor?.LookupId,
       });
       // console.log(JSON.stringify(datasheet) + "\n");
@@ -735,7 +741,9 @@ app.post("/graph/order", async (req, res) => {
 
   try {
     for (let order of orderData) {
-      let author = users.findOne({ graphId: order.fields.AuthorLookupId });
+      let author = await users.findOne({
+        graphId: order.fields.AuthorLookupId,
+      });
       // ! with the time limit on vercel, there's no other way to know whether it was created by the API or not
       if (order.createdBy.user.displayName == "System") {
         console.log("this was created from a Wrike item");

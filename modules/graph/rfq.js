@@ -21,7 +21,7 @@ async function modifyUserFromWrike(hooks, dataCollection, users) {
       // Get mongo item of task ID
       try {
         (mongoEntry = await dataCollection.findOne({ id: hook.taskId })),
-          users.findOne({ id: hook.taskId });
+          await users.findOne({ id: hook.taskId });
       } catch (error) {
         throw new Error(
           `there was an issue fetching the mongo entry: ${error}`
