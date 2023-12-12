@@ -719,7 +719,6 @@ app.post("/graph/order", async (req, res) => {
   let client;
   let users;
   let wrikeTitles;
-  let currentHistory = [];
   const skipToken = process.env.graph_order_skip_token;
   const accessData = await graphAccessData();
   try {
@@ -743,9 +742,10 @@ app.post("/graph/order", async (req, res) => {
       `there was an issue connecting to mongo (/graph/order): ${error}`
     );
   }
+  let orderPromises;
 
   try {
-    for (let order of orderData) {
+    orderPromises = orderData.map(async (order) => {
       let author = await users.findOne({
         graphId: order.fields.AuthorLookupId,
       });
@@ -763,7 +763,6 @@ app.post("/graph/order", async (req, res) => {
           { content: fileHash },
           { $set: { graphID: order.id, salt: salt, iterations: iterations } }
         );
-        continue;
       }
 
       const desc = `URL: ${order.fields._dlc_DocIdUrl.url || "none"} 
@@ -773,11 +772,11 @@ app.post("/graph/order", async (req, res) => {
       <br> Customer: ${order.fields.CustomerName || "none"}
       <br> Author: ${author}`;
 
-      currentHistory.push({
+      return {
         title: order.fields.FileLeafRef || null,
         url: order.fields._dlc_DocIdUrl.url || null,
         startDate: order.createdDateTime || null,
-        author: author,
+        author: author.wrikeUser,
         customerName: order.fields.CustomerName || null,
         poType: order.fields.POType || null,
         shipToSite: order.fields.ShipToSite || null,
@@ -785,11 +784,14 @@ app.post("/graph/order", async (req, res) => {
         soNumber: order.fields.SONumber || null,
         id: order.id,
         description: null,
-      });
-    }
+      };
+    });
   } catch (e) {
     console.error(`there was an error iterating order: ${e}`);
   }
+
+  const currentHistory = await Promise.all(orderPromises);
+
   try {
     const processPromises = currentHistory.map(async (rfq) => {
       try {
