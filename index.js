@@ -549,7 +549,6 @@ app.post("/graph/rfq", async (req, res) => {
   // TODO: get custom statuses, get customers (CF), add reveiwer to custom field reviewer
   // Puts all the elements in an easy to read format
   const rfqPromises = rfqData.value.map(async (element) => {
-    console.log("iteration start");
     let reviewer = await users.findOne({
       graphId: element.fields.ReviewerLookupId,
     });
@@ -599,15 +598,14 @@ app.post("/graph/rfq", async (req, res) => {
       submissionMethod: element.fields.Submission_x0020_Method,
       modified: element.fields.Modified,
       id: element.id,
-      assinged: assigned.wrikeUser,
-      reviewer: reviewer.wrikeUser,
+      assinged: assigned?.wrikeUser,
+      reviewer: reviewer?.wrikeUser,
     };
   });
   const currentHistory = await Promise.all(rfqPromises);
 
   let processPromises;
   try {
-    console.log("woo");
     processPromises = currentHistory.map(async (rfq) => {
       try {
         return await processRFQ(rfq, wrikeTitles, users);
@@ -618,13 +616,11 @@ app.post("/graph/rfq", async (req, res) => {
         return false;
       }
     });
-
     await Promise.all(processPromises);
   } catch (e) {
     console.log(`error mapping rfq: ${e}`);
   } finally {
     if (client) {
-      console.log("closing mongo client");
       await client.close();
     }
   }
@@ -636,9 +632,9 @@ app.post("/graph/datasheets", async (req, res) => {
   let client;
   let users;
   let wrikeTitles;
-  let currentHistory = [];
   let datasheetData;
   const accessData = await graphAccessData();
+
   try {
     datasheetData = await getDatasheets(
       process.env.graph_site_id_sales,
@@ -660,36 +656,39 @@ app.post("/graph/datasheets", async (req, res) => {
     );
   }
 
+  let datasheetPromises;
   try {
-    datasheetData.forEach(async (datasheet) => {
+    datasheetPromises = datasheetData.map(async (datasheet) => {
       let author = await users.findOne({
         graphId: datasheet.fields.Author0LookupId,
       });
       let guide = await users.findOne({
         graphId: datasheet.fields.Guide_x002f_Mentor?.LookupId,
       });
-      // console.log(JSON.stringify(datasheet) + "\n");
-      currentHistory.push({
+
+      return {
         title: `(DS) ${datasheet.fields.Title}` || null,
         description: null,
         priority:
           graphDSPriorityToWrikeImportance[datasheet.fields.field_5] ||
           graphDSPriorityToWrikeImportance.Medium,
-        assignee: author,
+        assignee: author?.wrikeUser,
         status:
           dsCustomStatuses.filter((s) => s.name == datasheet.fields.Status)[0]
             .id ||
           "IEAF5SOTJMEEOFGO" ||
           null,
         priorityNumber: datasheet.fields.Priority_x0023_ || null,
-        guide: guide,
+        guide: guide?.wrikeUser,
         startDate: datasheet.createdDateTime,
         graphID: datasheet.id,
-      });
+      };
     });
   } catch (e) {
     console.log(`there was an error iterating datasheets: ${e} \n ${e.stack}`);
   }
+  const currentHistory = await Promise.all(datasheetPromises);
+
   let processPromises;
   try {
     processPromises = currentHistory.map(async (ds) => {
@@ -707,6 +706,7 @@ app.post("/graph/datasheets", async (req, res) => {
     console.log(`error mapping datasheets: ${e}`);
   } finally {
     if (client) {
+      console.log("closing client");
       await client.close();
     }
   }

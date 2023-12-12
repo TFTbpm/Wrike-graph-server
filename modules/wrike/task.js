@@ -491,10 +491,10 @@ async function processDataSheet(datasheet, wrikeTitles, users) {
               ],
           datasheet.status,
           null
-        ).then((data) => {
+        ).then(async (data) => {
           console.log("new datasheet");
           try {
-            wrikeTitles.insertOne({
+            await wrikeTitles.insertOne({
               title: datasheet.title,
               id: data.data[0].id,
               graphID: datasheet.graphID,
@@ -547,8 +547,8 @@ async function processDataSheet(datasheet, wrikeTitles, users) {
           datasheet.status,
           null,
           null
-        ).then((data) => {
-          wrikeTitles.findOneAndUpdate(
+        ).then(async (data) => {
+          await wrikeTitles.findOneAndUpdate(
             { id: data.data[0].id },
             { $set: { graphID: datasheet.graphID } }
           );
