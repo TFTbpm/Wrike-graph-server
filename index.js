@@ -306,13 +306,7 @@ app.post("/wrike/rfq/reviewer", addAPIIdToReq, async (req, res) => {
   }
 
   try {
-    await modifyCustomFieldFromWrike(
-      req.body,
-      graphIDToWrikeID,
-      rfqCollection,
-      users,
-      "rfq"
-    );
+    await modifyCustomFieldFromWrike(req.body, rfqCollection, users, "rfq");
   } catch (error) {
     console.error(error);
   }

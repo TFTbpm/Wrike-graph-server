@@ -118,17 +118,8 @@ async function modifyUserFromWrike(hooks, dataCollection, users) {
   }
 }
 
-async function modifyCustomFieldFromWrike(
-  hooks,
-  graphIDToWrikeID,
-  collection,
-  users,
-  folder
-) {
+async function modifyCustomFieldFromWrike(hooks, collection, users, folder) {
   let body;
-  // pass in the array of custom statuses, the folderID, collection, graphIDToWrikeID, users collection,
-  // connect to mongo
-  // iterate through changed hooks
   try {
     let mongoEntry;
     for (const hook of hooks) {
@@ -162,31 +153,18 @@ async function modifyCustomFieldFromWrike(
           });
           // if adding a reviewer
         } else {
-          // get graph id from wrike id
-          const foundKey = Object.keys(graphIDToWrikeID).find(
-            (key) => graphIDToWrikeID[key] === hook.value
-          );
+          const foundKey = await users.findOne({ wrikeUser: hook.value });
 
           if (!foundKey) {
             console.log(`id is not stored! ID: ${hook.value}`);
             continue;
           }
 
-          console.log("Found Key:", foundKey);
-
-          const reviewer = await users.findOne({ graphId: foundKey });
-
-          console.log("Reviewer:", reviewer.name);
-
-          if (!reviewer) {
-            console.log(`id is not stored! ID: ${hook.value}`);
-            continue;
-          }
           // send data to power automate
 
           body = JSON.stringify({
             resource: "RFQ",
-            data: reviewer.graphId,
+            data: foundKey.graphId,
             id: parseInt(mongoEntry.graphID),
             type: "ADD",
             name: "null",
@@ -200,28 +178,20 @@ async function modifyCustomFieldFromWrike(
       ) {
         console.log("ds hook");
 
-        const foundKey = Object.keys(graphIDToWrikeID).find(
-          (key) => graphIDToWrikeID[key] === hook.value
-        );
+        const foundKey = await users.findOne({ wrikeUser: hook.value });
 
         if (!foundKey) {
           console.log(`id is not stored! ID: ${hook.value}`);
           continue;
         }
 
-        const reviewer = await users.findOne({ id: foundKey });
-
-        if (!reviewer) {
-          console.log(`id is not stored! ID: ${hook.value}`);
-          continue;
-        }
         // send data to power automate
 
         body = JSON.stringify({
           resource: "datasheet",
           // This needs to be a string or else it gets rejected since other routes
           //  require data to be a string
-          data: reviewer.grahpId,
+          data: foundKey.graphId,
           id: parseInt(mongoEntry.graphID),
           type: "ADD",
           name: "null",
@@ -232,7 +202,6 @@ async function modifyCustomFieldFromWrike(
 
     if (body) {
       try {
-        // console.log(body);
         const response = await fetch(process.env.graph_power_automate_uri, {
           method: "PATCH",
           body: body,
