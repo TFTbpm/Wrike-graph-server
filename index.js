@@ -524,7 +524,6 @@ app.post("/graph/*", (req, res, next) => {
 });
 
 app.post("/graph/rfq", async (req, res) => {
-  let currentHistory = [];
   let client;
   let wrikeTitles;
   let users;
@@ -549,13 +548,15 @@ app.post("/graph/rfq", async (req, res) => {
 
   // TODO: get custom statuses, get customers (CF), add reveiwer to custom field reviewer
   // Puts all the elements in an easy to read format
-  rfqData.value.forEach(async (element) => {
+  const rfqPromises = rfqData.value.map(async (element) => {
+    console.log("iteration start");
     let reviewer = await users.findOne({
       graphId: element.fields.ReviewerLookupId,
     });
     let assigned = await users.findOne({
       graphId: element.fields.AssignedLookupId,
     });
+
     // some rfqs are input after they're due, in which case start date needs to move to due date:
 
     let startDate = new Date(element.createdDateTime);
@@ -575,7 +576,7 @@ app.post("/graph/rfq", async (req, res) => {
           : element.fields.Internal_x0020_Due_x0020_Date
         : element.createdDateTime;
 
-    currentHistory.push({
+    return {
       title: element.fields.Title,
       url: element.fields._dlc_DocIdUrl.Url,
       accountType: element.fields.Account_x0020_Type,
@@ -598,13 +599,16 @@ app.post("/graph/rfq", async (req, res) => {
       submissionMethod: element.fields.Submission_x0020_Method,
       modified: element.fields.Modified,
       id: element.id,
-      assinged: assigned,
-      reviewer: reviewer,
-    });
+      assinged: assigned.wrikeUser,
+      reviewer: reviewer.wrikeUser,
+    };
   });
+  const currentHistory = await Promise.all(rfqPromises);
 
+  let processPromises;
   try {
-    const processPromises = currentHistory.map(async (rfq) => {
+    console.log("woo");
+    processPromises = currentHistory.map(async (rfq) => {
       try {
         return await processRFQ(rfq, wrikeTitles, users);
       } catch (e) {
@@ -620,6 +624,7 @@ app.post("/graph/rfq", async (req, res) => {
     console.log(`error mapping rfq: ${e}`);
   } finally {
     if (client) {
+      console.log("closing mongo client");
       await client.close();
     }
   }
