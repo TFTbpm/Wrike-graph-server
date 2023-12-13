@@ -293,6 +293,7 @@ async function processRFQ(rfq, wrikeTitles, users) {
       console.log(`MongoDB operation failed after multiple retries: ${error}`);
       reject(error);
     }
+
     // if this title hasn't been put into the system yet:
     if (title === null) {
       try {
@@ -373,7 +374,7 @@ async function processRFQ(rfq, wrikeTitles, users) {
       // if it exists in the system, modify the task
       const taskID = title.id;
       try {
-        modifyTask(
+        await modifyTask(
           taskID,
           process.env.wrike_folder_rfq,
           process.env.wrike_perm_access_token,

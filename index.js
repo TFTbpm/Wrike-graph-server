@@ -501,7 +501,7 @@ app.post("/order/sync", async (req, res) => {
   res.status(200).send();
 });
 
-app.post("/graph/*", (req, res, next) => {
+app.post("/graph/*", async (req, res, next) => {
   if (req.url.includes("validationToken=")) {
     // have to check for %3A with a regex and replace matches since decodeURI treats them as special char
     res
@@ -530,6 +530,7 @@ app.post("/graph/rfq", async (req, res) => {
 
   try {
     client = new MongoClient(process.env.mongoURL);
+    await client.connect();
     const db = client.db(process.env.mongoDB);
     wrikeTitles = db.collection(process.env.mongoRFQCollection);
     users = db.collection(process.env.mongoUserColection);
@@ -548,64 +549,83 @@ app.post("/graph/rfq", async (req, res) => {
 
   // TODO: get custom statuses, get customers (CF), add reveiwer to custom field reviewer
   // Puts all the elements in an easy to read format
-  const rfqPromises = rfqData.value.map(async (element) => {
-    let reviewer = await users.findOne({
-      graphId: element.fields.ReviewerLookupId,
+  let rfqPromises;
+  try {
+    rfqPromises = rfqData.value.map(async (element) => {
+      // console.log("start");
+      let reviewer = await users.findOne({
+        graphId: element.fields.ReviewerLookupId,
+      });
+      let assigned = await users.findOne({
+        graphId: element.fields.AssignedLookupId,
+      });
+
+      // some rfqs are input after they're due, in which case start date needs to move to due date:
+
+      let startDate = new Date(element.createdDateTime);
+      const internalDueDate = new Date(
+        element.fields.Internal_x0020_Due_x0020_Date
+      );
+      const requestedDate = new Date(
+        element.fields.Customer_x0020_Requested_x0020_Date
+      );
+
+      // if start date is after either then set the start date to that date
+      startDate =
+        requestedDate.getTime() < startDate.getTime() ||
+        internalDueDate.getTime() < startDate.getTime()
+          ? requestedDate.getTime() < internalDueDate.getTime()
+            ? element.fields.Customer_x0020_Requested_x0020_Date
+            : element.fields.Internal_x0020_Due_x0020_Date
+          : element.createdDateTime;
+
+      // console.log("end");
+
+      return {
+        title: element.fields.Title,
+        url: element.fields._dlc_DocIdUrl.Url,
+        accountType: element.fields.Account_x0020_Type,
+        contactEmail: element.fields.Contact_x0020_Email,
+        contactName: element.fields.Contact_x0020_Name,
+        customerName: element.fields.Customer_x0020_Name,
+        customerRequestedDate:
+          element.fields.Customer_x0020_Requested_x0020_Date,
+        internalDueDate:
+          element.fields.Internal_x0020_Due_x0020_Date ||
+          element.fields.Customer_x0020_Requested_x0020_Date,
+        startDate: startDate,
+        numberOfLineItems:
+          element.fields.Number_x0020_of_x0020_Line_x0020_Items,
+        priority:
+          graphRFQPriorityToWrikeImportance[element.fields.Priority] ||
+          graphRFQPriorityToWrikeImportance.Medium,
+        quoteSource: element.fields.Quote_x0020_Source,
+        status:
+          rfqCustomStatuses.filter((s) => s.name == element.fields.Status)[0]
+            .id || "IEAF5SOTJMEAFYJS",
+        submissionMethod: element.fields.Submission_x0020_Method,
+        modified: element.fields.Modified,
+        id: element.id,
+        assinged: assigned?.wrikeUser,
+        reviewer: reviewer?.wrikeUser,
+      };
     });
-    let assigned = await users.findOne({
-      graphId: element.fields.AssignedLookupId,
-    });
-
-    // some rfqs are input after they're due, in which case start date needs to move to due date:
-
-    let startDate = new Date(element.createdDateTime);
-    const internalDueDate = new Date(
-      element.fields.Internal_x0020_Due_x0020_Date
+  } catch (error) {
+    console.error(
+      `there was an error iterating rfqs : ${error} \n ${error.stack}`
     );
-    const requestedDate = new Date(
-      element.fields.Customer_x0020_Requested_x0020_Date
-    );
+  }
 
-    // if start date is after either then set the start date to that date
-    startDate =
-      requestedDate.getTime() < startDate.getTime() ||
-      internalDueDate.getTime() < startDate.getTime()
-        ? requestedDate.getTime() < internalDueDate.getTime()
-          ? element.fields.Customer_x0020_Requested_x0020_Date
-          : element.fields.Internal_x0020_Due_x0020_Date
-        : element.createdDateTime;
-
-    return {
-      title: element.fields.Title,
-      url: element.fields._dlc_DocIdUrl.Url,
-      accountType: element.fields.Account_x0020_Type,
-      contactEmail: element.fields.Contact_x0020_Email,
-      contactName: element.fields.Contact_x0020_Name,
-      customerName: element.fields.Customer_x0020_Name,
-      customerRequestedDate: element.fields.Customer_x0020_Requested_x0020_Date,
-      internalDueDate:
-        element.fields.Internal_x0020_Due_x0020_Date ||
-        element.fields.Customer_x0020_Requested_x0020_Date,
-      startDate: startDate,
-      numberOfLineItems: element.fields.Number_x0020_of_x0020_Line_x0020_Items,
-      priority:
-        graphRFQPriorityToWrikeImportance[element.fields.Priority] ||
-        graphRFQPriorityToWrikeImportance.Medium,
-      quoteSource: element.fields.Quote_x0020_Source,
-      status:
-        rfqCustomStatuses.filter((s) => s.name == element.fields.Status)[0]
-          .id || "IEAF5SOTJMEAFYJS",
-      submissionMethod: element.fields.Submission_x0020_Method,
-      modified: element.fields.Modified,
-      id: element.id,
-      assinged: assigned?.wrikeUser,
-      reviewer: reviewer?.wrikeUser,
-    };
-  });
-  const currentHistory = await Promise.all(rfqPromises);
+  let currentHistory;
+  try {
+    currentHistory = await Promise.all(rfqPromises);
+  } catch (error) {
+    console.error(`there was an error in rfq promises: ${error}`);
+  }
 
   let processPromises;
   try {
+    // console.log("yup");
     processPromises = currentHistory.map(async (rfq) => {
       try {
         return await processRFQ(rfq, wrikeTitles, users);
@@ -616,12 +636,18 @@ app.post("/graph/rfq", async (req, res) => {
         return false;
       }
     });
-    await Promise.all(processPromises);
+    try {
+      await Promise.all(processPromises);
+    } catch (error) {
+      console.error(`error resolving processPromises: ${error}`);
+    }
   } catch (e) {
     console.log(`error mapping rfq: ${e}`);
   } finally {
-    if (client) {
-      await client.close();
+    try {
+      await client?.close();
+    } catch (error) {
+      console.error(`couldn't close client: ${error} \n ${error.stack}`);
     }
   }
 
@@ -647,6 +673,7 @@ app.post("/graph/datasheets", async (req, res) => {
 
   try {
     client = new MongoClient(process.env.mongoURL);
+    await client.connect();
     const db = client.db(process.env.mongoDB);
     wrikeTitles = db.collection(process.env.mongoDatasheetCollection);
     users = db.collection(process.env.mongoUserColection);
@@ -734,6 +761,7 @@ app.post("/graph/order", async (req, res) => {
 
   try {
     client = new MongoClient(process.env.mongoURL);
+    await client.connect();
     const db = client.db(process.env.mongoDB);
     wrikeTitles = db.collection(process.env.mongoRFQCollection);
     users = db.collection(process.env.mongoUserColection);
