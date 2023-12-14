@@ -45,15 +45,11 @@ async function modifyUserFromWrike(hooks, dataCollection, users) {
           continue;
         }
 
-        if (!assignee) {
-          console.log(`id is not stored! ID: ${hook.addedResponsibles}`);
-          continue;
-        }
         // send data to power automate
 
         body = JSON.stringify({
           resource: "RFQ",
-          data: `${assignee.graphId}`,
+          data: `${foundKey.graphId}`,
           id: parseInt(mongoEntry.graphID),
           type: "ADD",
           name: "null",
@@ -74,14 +70,9 @@ async function modifyUserFromWrike(hooks, dataCollection, users) {
           continue;
         }
 
-        if (!assignee) {
-          console.log(`id is not stored! ID: ${hook.removedResponsibles}`);
-          continue;
-        }
-
         body = JSON.stringify({
           resource: "RFQ",
-          data: `${assignee.graphId}`,
+          data: `${foundKey.graphId}`,
           id: parseInt(mongoEntry.graphID),
           type: "REMOVE",
           name: "null",
