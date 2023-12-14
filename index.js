@@ -489,17 +489,17 @@ app.post("/rfq/sync", async (req, res) => {
   res.status(200).send();
 });
 
-app.post("/order/sync", async (req, res) => {
-  try {
-    await syncWrikeToCollection(
-      process.env.wrike_folder_orders,
-      process.env.mongoOrderCollection
-    );
-  } catch (error) {
-    console.error(`something went wrong: ${error}`);
-  }
-  res.status(200).send();
-});
+// app.post("/order/sync", async (req, res) => {
+//   try {
+//     await syncWrikeToCollection(
+//       process.env.wrike_folder_orders,
+//       process.env.mongoOrderCollection
+//     );
+//   } catch (error) {
+//     console.error(`something went wrong: ${error}`);
+//   }
+//   res.status(200).send();
+// });
 
 app.post("/graph/*", async (req, res, next) => {
   if (req.url.includes("validationToken=")) {

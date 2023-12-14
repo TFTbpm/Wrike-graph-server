@@ -151,6 +151,7 @@ async function modifyCustomFieldFromWrike(hooks, collection, users, folder) {
             name: "null",
             field: "reviewer",
           });
+          return;
           // if adding a reviewer
         } else {
           const foundKey = await users.findOne({ wrikeUser: hook.value });
@@ -221,7 +222,7 @@ async function modifyCustomFieldFromWrike(hooks, collection, users, folder) {
         throw new Error(`there was an error modifying responsbles: ${error}`);
       }
     } else {
-      console.log("not completed");
+      console.log("not completed or empty");
     }
   } catch (error) {
     console.error(
