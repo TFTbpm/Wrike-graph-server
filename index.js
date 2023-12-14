@@ -702,7 +702,7 @@ app.post("/graph/datasheets", async (req, res) => {
         assignee: author?.wrikeUser,
         status:
           dsCustomStatuses.filter((s) => s.name == datasheet.fields.Status)[0]
-            .id ||
+            ?.id ||
           "IEAF5SOTJMEEOFGO" ||
           null,
         priorityNumber: datasheet.fields.Priority_x0023_ || null,
