@@ -789,7 +789,7 @@ app.post("/graph/order", async (req, res) => {
         // Get mongo entry for given resource id
         wrikeTitles.findOneAndUpdate(
           { content: fileHash },
-          { $set: { graphID: order.id, salt: "null", iterations: iterations } }
+          { $set: { graphID: order.id, salt: "null", iterations: 0 } }
         );
       }
 
