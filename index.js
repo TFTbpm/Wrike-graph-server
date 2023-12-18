@@ -818,7 +818,14 @@ app.post("/graph/order", async (req, res) => {
     console.error(`there was an error iterating order: ${e}`);
   }
 
-  const currentHistory = await Promise.all(orderPromises);
+  let currentHistory;
+  try {
+    const currentHistory = await Promise.all(orderPromises);
+  } catch (error) {
+    console.error(
+      `there was an error awaiting order promises: ${error} \n ${error.stack}`
+    );
+  }
 
   try {
     const processPromises = currentHistory.map(async (rfq) => {
