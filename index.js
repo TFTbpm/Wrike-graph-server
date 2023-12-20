@@ -820,7 +820,7 @@ app.post("/graph/order", async (req, res) => {
 
   let currentHistory;
   try {
-    const currentHistory = await Promise.all(orderPromises);
+    currentHistory = await Promise.all(orderPromises);
   } catch (error) {
     console.error(
       `there was an error awaiting order promises: ${error} \n ${error.stack}`
@@ -841,7 +841,7 @@ app.post("/graph/order", async (req, res) => {
 
     await Promise.all(processPromises);
   } catch (e) {
-    console.log(`error mapping rfq: ${e}`);
+    console.log(`error mapping orders: ${e}`);
   } finally {
     if (client) {
       console.log(`closing client...`);
