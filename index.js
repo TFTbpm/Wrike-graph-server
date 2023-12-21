@@ -171,8 +171,8 @@ app.set("trust proxy", 1);
 
 const addAPIIdToReq = async (req, res, next) => {
   try {
-    if (req.body[0].value == '""') {
-      next();
+    if (req.body[0].value == '""' || !req.body[0].value) {
+      await next();
     }
     const result = await findAndAddWrikeUID(req.body[0].value);
     console.log(`res ${JSON.stringify(result)}`);
@@ -181,7 +181,7 @@ const addAPIIdToReq = async (req, res, next) => {
     req.body[0].value = result.wrikeUser;
 
     // Call next middleware in the stack
-    next();
+    await next();
   } catch (error) {
     console.error(`Error in findAndAddWrikeUIDMiddleware: ${error}`);
     res.status(500).json({ success: false, error: "Internal server error" });
