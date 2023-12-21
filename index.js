@@ -374,7 +374,7 @@ app.post("/wrike/order", async (req, res) => {
 });
 
 // Datasheet reviewer
-app.post("/wrike/datasheets/reviewer", addAPIIdToReq, async (req, res) => {
+app.post("/wrike/datasheet/reviewer", addAPIIdToReq, async (req, res) => {
   let client;
   let orderCollection;
   let users;
