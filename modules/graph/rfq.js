@@ -124,7 +124,7 @@ async function modifyCustomFieldFromWrike(hooks, collection, users, folder) {
       ) {
         console.log("reviewer rfq hook", hook);
         // if removing a reviewer
-        if (hook.value === '""' || !hook.value) {
+        if (hook.value == '""' || !hook.value) {
           body = JSON.stringify({
             resource: "RFQ",
             data: "null",
@@ -210,7 +210,7 @@ async function modifyCustomFieldFromWrike(hooks, collection, users, folder) {
       `There was an error processing the custom field data: ${error}\n ${error.stack}`
     );
     throw new Error(
-      `There was an error processing the custom field data: ${error}\n ${error.stack}`
+      `There was an error processing the custom field data: ${error} \n fetch body: ${body} \n ${error.stack}`
     );
   }
 }
