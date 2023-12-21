@@ -30,10 +30,6 @@ async function modifyUserFromWrike(hooks, dataCollection, users) {
 
       // if adding an assignee
       if (hook.addedResponsibles) {
-        // get graph id from wrike id
-        // const foundKey = Object.keys(graphIDToWrikeID).find(
-        //   (key) => graphIDToWrikeID[key] === hook.addedResponsibles[0]
-        // );
         const foundKey = await users.findOne({
           wrikeUser: hook.addedResponsibles[0],
         });
@@ -56,14 +52,9 @@ async function modifyUserFromWrike(hooks, dataCollection, users) {
           field: "AssignedId",
         });
       } else if (hook.removedResponsibles) {
-        // get graph id from wrike id
-        // const foundKey = Object.keys(graphIDToWrikeID).find(
-        //   (key) => graphIDToWrikeID[key] === hook.removedResponsibles[0]
-        // );
         const foundKey = await users.findOne({
           wrikeUser: hook.removedResponsibles[0],
         });
-        console.log(foundKey);
 
         if (!foundKey) {
           console.log(`id is not stored! ID: ${hook.removedResponsibles}`);
@@ -133,7 +124,7 @@ async function modifyCustomFieldFromWrike(hooks, collection, users, folder) {
       ) {
         console.log("reviewer rfq hook", hook);
         // if removing a reviewer
-        if (hook.value === '""') {
+        if (hook.value === undefined) {
           body = JSON.stringify({
             resource: "RFQ",
             data: "null",

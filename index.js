@@ -795,12 +795,13 @@ app.post("/graph/order", async (req, res) => {
         );
       }
 
-      const desc = `URL: ${order.fields._dlc_DocIdUrl.url || "none"} 
+      const desc = `URL: ${order.fields._dlc_DocIdUrl.Url || "none"} 
       <br> Entered date: ${order.createdDateTime} 
       <br> PO number: ${order.fields.PONumber || "none"} 
       <br> SO number: ${order.fields.SONumber || "none"}
       <br> Customer: ${order.fields.CustomerName || "none"}
       <br> Author: ${author}`;
+      // console.log(desc);
 
       return {
         title: order.fields.FileLeafRef || null,
@@ -813,7 +814,7 @@ app.post("/graph/order", async (req, res) => {
         poNumber: order.fields.PONumber || null,
         soNumber: order.fields.SONumber || null,
         id: order.id,
-        description: null,
+        description: desc,
       };
     });
   } catch (e) {
