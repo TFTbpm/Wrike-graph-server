@@ -173,15 +173,16 @@ const addAPIIdToReq = async (req, res, next) => {
   try {
     if (req.body[0].value == '""' || !req.body[0].value) {
       await next();
+    } else {
+      const result = await findAndAddWrikeUID(req.body[0].value);
+      console.log(`res ${JSON.stringify(result)}`);
+
+      // Modify the 'req' object to include the user information
+      req.body[0].value = result.wrikeUser;
+
+      // Call next middleware in the stack
+      await next();
     }
-    const result = await findAndAddWrikeUID(req.body[0].value);
-    console.log(`res ${JSON.stringify(result)}`);
-
-    // Modify the 'req' object to include the user information
-    req.body[0].value = result.wrikeUser;
-
-    // Call next middleware in the stack
-    await next();
   } catch (error) {
     console.error(`Error in findAndAddWrikeUIDMiddleware: ${error}`);
     res.status(500).json({ success: false, error: "Internal server error" });
