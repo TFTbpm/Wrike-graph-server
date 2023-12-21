@@ -472,7 +472,6 @@ async function processDataSheet(datasheet, wrikeTitles, users) {
       });
     }
     if (datasheet.createdBy) {
-      console.log("author: ", datasheet.createdBy);
       customFieldsArray.push({
         id: wrikeCustomFields.CreatedBy,
         value: datasheet.createdBy,

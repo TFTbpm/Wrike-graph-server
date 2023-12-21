@@ -690,10 +690,9 @@ app.post("/graph/datasheets", async (req, res) => {
         graphId: datasheet.fields.Author0LookupId,
       });
       let guide = await users.findOne({
-        graphId: datasheet.fields.Guide_x002f_Mentor?.[0].LookupId,
+        graphId: `${datasheet.fields.Guide_x002f_Mentor?.[0].LookupId}`,
       });
-      console.log(datasheet.fields.Guide_x002f_Mentor?.[0].LookupId);
-      console.log([author, guide]);
+      // console.log(datasheet.fields.Guide_x002f_Mentor?.[0].LookupId);
 
       return {
         title: `(DS) ${datasheet.fields.Title}` || null,
@@ -708,7 +707,7 @@ app.post("/graph/datasheets", async (req, res) => {
           "IEAF5SOTJMEEOFGO" ||
           null,
         priorityNumber: datasheet.fields.Priority_x0023_ || null,
-        guide: guide?.wrikeUser,
+        guide: guide?.wrikeUser || null,
         startDate: datasheet.createdDateTime,
         graphID: datasheet.id,
         createdBy: author?.wrikeUser,
