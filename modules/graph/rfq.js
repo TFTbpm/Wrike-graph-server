@@ -128,7 +128,7 @@ async function modifyCustomFieldFromWrike(hooks, collection, users, folder) {
           body = JSON.stringify({
             resource: "RFQ",
             data: "null",
-            id: parseInt(mongoEntry.graphID),
+            id: parseInt(mongoEntry.graphId),
             type: "REMOVE",
             name: "null",
             field: "reviewer",
@@ -200,7 +200,9 @@ async function modifyCustomFieldFromWrike(hooks, collection, users, folder) {
           );
         }
       } catch (error) {
-        throw new Error(`there was an error modifying responsbles: ${error}`);
+        throw new Error(
+          `there was an error modifying responsbles: ${error} \n ${await response.text()}`
+        );
       }
     } else {
       console.log("not completed or empty");
