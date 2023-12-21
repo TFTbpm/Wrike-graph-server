@@ -44,15 +44,11 @@ async function getDatasheets(site_id, list_id, access_token) {
     (a, b) =>
       new Date(b.lastModifiedDateTime) - new Date(a.lastModifiedDateTime)
   );
-  const filteredItems = allItems.slice(0, 5);
+  const filteredItems = allItems.slice(0, 100);
   const endTime = performance.now();
   console.log(
     `${allItems.length} orders retrieved: (${(endTime - startTime) / 1000}s)`
   );
-
-  // filteredItems.forEach((elem) => {
-  //   console.log(elem.fields.Title);
-  // });
 
   return filteredItems;
 }

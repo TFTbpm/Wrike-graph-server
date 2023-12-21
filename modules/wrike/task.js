@@ -4,6 +4,7 @@ const wrikeCustomFields = {
   Impact: "IEAF5SOTJUAEUZME",
   Priority: "IEAF5SOTJUAFCL3W",
   Guide: "IEAF5SOTJUAFCL3U",
+  CreatedBy: "IEAF5SOTJUAFJRBT",
 };
 
 const graphIDToWrikeID = { 12: "KUAQZDX2", 189: "KUARCPVF", 832: "KUAQ3CVX" };
@@ -456,6 +457,29 @@ async function processDataSheet(datasheet, wrikeTitles, users) {
       );
       reject(`there was an issue connecting to datasheet collection: ${error}`);
     }
+
+    // determine custom fields array
+    let customFieldsArray = [
+      {
+        id: wrikeCustomFields.Priority,
+        value: parseInt(datasheet.priorityNumber),
+      },
+    ];
+    if (datasheet.guide) {
+      customFieldsArray.push({
+        id: wrikeCustomFields.Guide,
+        value: datasheet.guide,
+      });
+    }
+    if (datasheet.createdBy) {
+      console.log("author: ", datasheet.createdBy);
+      customFieldsArray.push({
+        id: wrikeCustomFields.CreatedBy,
+        value: datasheet.createdBy,
+      });
+    }
+    console.log(customFieldsArray);
+
     if (title === null) {
       try {
         createTask(
@@ -473,23 +497,7 @@ async function processDataSheet(datasheet, wrikeTitles, users) {
           null,
           null,
           null,
-          datasheet.guide
-            ? [
-                {
-                  id: wrikeCustomFields.Guide,
-                  value: datasheet.guide,
-                },
-                {
-                  id: wrikeCustomFields.Priority,
-                  value: parseInt(datasheet.priorityNumber),
-                },
-              ]
-            : [
-                {
-                  id: wrikeCustomFields.Priority,
-                  value: parseInt(datasheet.priorityNumber),
-                },
-              ],
+          customFieldsArray,
           datasheet.status,
           null
         ).then(async (data) => {
@@ -528,23 +536,7 @@ async function processDataSheet(datasheet, wrikeTitles, users) {
           null,
           null,
           null,
-          datasheet.guide
-            ? [
-                {
-                  id: wrikeCustomFields.Guide,
-                  value: datasheet.guide,
-                },
-                {
-                  id: wrikeCustomFields.Priority,
-                  value: parseInt(datasheet.priorityNumber),
-                },
-              ]
-            : [
-                {
-                  id: wrikeCustomFields.Priority,
-                  value: parseInt(datasheet.priorityNumber),
-                },
-              ],
+          customFieldsArray,
           datasheet.status,
           null,
           null

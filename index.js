@@ -690,8 +690,10 @@ app.post("/graph/datasheets", async (req, res) => {
         graphId: datasheet.fields.Author0LookupId,
       });
       let guide = await users.findOne({
-        graphId: datasheet.fields.Guide_x002f_Mentor?.LookupId,
+        graphId: datasheet.fields.Guide_x002f_Mentor?.[0].LookupId,
       });
+      console.log(datasheet.fields.Guide_x002f_Mentor?.[0].LookupId);
+      console.log([author, guide]);
 
       return {
         title: `(DS) ${datasheet.fields.Title}` || null,
@@ -709,6 +711,7 @@ app.post("/graph/datasheets", async (req, res) => {
         guide: guide?.wrikeUser,
         startDate: datasheet.createdDateTime,
         graphID: datasheet.id,
+        createdBy: author?.wrikeUser,
       };
     });
   } catch (e) {

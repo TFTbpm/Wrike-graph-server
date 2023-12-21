@@ -1,4 +1,6 @@
 const { MongoClient } = require("mongodb");
+const { config } = require("dotenv");
+config();
 
 // TODO: add closing to wrike
 
