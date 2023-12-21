@@ -128,7 +128,7 @@ async function modifyCustomFieldFromWrike(hooks, collection, users, folder) {
           body = JSON.stringify({
             resource: "RFQ",
             data: "null",
-            id: parseInt(mongoEntry.graphId),
+            id: parseInt(mongoEntry.graphID),
             type: "REMOVE",
             name: "null",
             field: "reviewer",
@@ -184,6 +184,9 @@ async function modifyCustomFieldFromWrike(hooks, collection, users, folder) {
 
     if (body) {
       try {
+        console.log(
+          `sending body: ${body} to ${process.env.graph_power_automate_uri}`
+        );
         const response = await fetch(process.env.graph_power_automate_uri, {
           method: "PATCH",
           body: body,
@@ -200,9 +203,7 @@ async function modifyCustomFieldFromWrike(hooks, collection, users, folder) {
           );
         }
       } catch (error) {
-        throw new Error(
-          `there was an error modifying responsbles: ${error} \n ${await response.text()}`
-        );
+        throw new Error(`there was an error modifying responsibles: ${error}`);
       }
     } else {
       console.log("not completed or empty");
