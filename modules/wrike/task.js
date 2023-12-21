@@ -467,7 +467,7 @@ async function processDataSheet(datasheet, wrikeTitles, users) {
     ];
     if (datasheet.guide) {
       customFieldsArray.push({
-        id: wrikeCustomFields.Guide,
+        id: wrikeCustomFields.Reviewer,
         value: datasheet.guide,
       });
     }
