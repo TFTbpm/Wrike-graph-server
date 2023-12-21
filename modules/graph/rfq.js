@@ -124,7 +124,7 @@ async function modifyCustomFieldFromWrike(hooks, collection, users, folder) {
       ) {
         console.log("reviewer rfq hook", hook);
         // if removing a reviewer
-        if (hook.value === undefined) {
+        if (hook.value === '""' || !hook.value) {
           body = JSON.stringify({
             resource: "RFQ",
             data: "null",
