@@ -398,6 +398,30 @@ app.post("/wrike/datasheet/reviewer", addAPIIdToReq, async (req, res) => {
   res.status(202).send();
 });
 
+app.post("/wrike/datasheet/assignee", async (req, res) => {
+  console.log(req.body);
+  // let client;
+  // let orderCollection;
+  // let users;
+  // try {
+  //   client = new MongoClient(process.env.mongoURL);
+  //   const db = client.db(process.env.mongoDB);
+  //   orderCollection = db.collection(process.env.mongoDatasheetCollection);
+  //   users = db.collection(process.env.mongoUserColection);
+  // } catch (error) {
+  //   console.error(`there was an issue accessing Mongo: ${error}`);
+  // }
+
+  // await modifyCustomFieldFromWrike(
+  //   req.body,
+  //   orderCollection,
+  //   users,
+  //   "datasheet"
+  // );
+
+  res.status(202).send();
+});
+
 app.post("/wrike/rfq/delete", async (req, res) => {
   // console.log(JSON.stringify(req.body));
   let client;
