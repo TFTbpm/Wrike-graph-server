@@ -494,7 +494,7 @@ async function processDataSheet(datasheet, wrikeTitles, users) {
           },
           null,
           null,
-          null,
+          datasheet.assignee ? [datasheet.assignee] : null,
           null,
           customFieldsArray,
           datasheet.status,
@@ -533,19 +533,23 @@ async function processDataSheet(datasheet, wrikeTitles, users) {
           },
           null,
           null,
-          null,
+          datasheet.assignee ? [datasheet.assignee] : null,
           null,
           customFieldsArray,
           datasheet.status,
           null,
           null
         ).then(async (data) => {
-          await wrikeTitles.findOneAndUpdate(
-            { id: data.data[0].id },
-            { $set: { graphID: datasheet.graphID } }
-          );
-          console.log("updated datasheet");
-          resolve("new datasheet");
+          try {
+            await wrikeTitles.findOneAndUpdate(
+              { id: data.data[0].id },
+              { $set: { graphID: datasheet.graphID } }
+            );
+            console.log("updated datasheet");
+            resolve("new datasheet");
+          } catch (error) {
+            reject(`failed to update mongo entry: ${error} \n ${error.stack}`);
+          }
         });
       } catch (e) {
         console.error(`error editing datasheet: ${e}`);
