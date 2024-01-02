@@ -160,25 +160,37 @@ async function modifyCustomFieldFromWrike(hooks, collection, users, folder) {
       ) {
         console.log("ds hook");
 
-        const foundKey = await users.findOne({ wrikeUser: hook.value });
+        if (hook.value == '""' || !hook.value) {
+          body = JSON.stringify({
+            resource: "datasheet",
+            data: "null",
+            id: parseInt(mongoEntry.graphID),
+            type: "REMOVE",
+            name: "null",
+            field: "reviewer",
+          });
+          // if adding a reviewer
+        } else {
+          const foundKey = await users.findOne({ wrikeUser: hook.value });
 
-        if (!foundKey) {
-          console.log(`id is not stored! ID: ${hook.value}`);
-          continue;
+          if (!foundKey) {
+            console.log(`id is not stored! ID: ${hook.value}`);
+            continue;
+          }
+
+          // send data to power automate
+
+          body = JSON.stringify({
+            resource: "datasheet",
+            // This needs to be a string or else it gets rejected since other routes
+            //  require data to be a string
+            data: foundKey.graphId,
+            id: parseInt(mongoEntry.graphID),
+            type: "ADD",
+            name: "null",
+            field: "Guide_x002f_MentorId",
+          });
         }
-
-        // send data to power automate
-
-        body = JSON.stringify({
-          resource: "datasheet",
-          // This needs to be a string or else it gets rejected since other routes
-          //  require data to be a string
-          data: foundKey.graphId,
-          id: parseInt(mongoEntry.graphID),
-          type: "ADD",
-          name: "null",
-          field: "Guide_x002f_MentorId",
-        });
       }
     }
 
