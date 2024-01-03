@@ -281,6 +281,7 @@ async function processRFQ(rfq, wrikeTitles, users) {
       reject(error);
     }
     try {
+      // ? this should be in the modify task condition, why is it here?
       let allUsers;
       await performMongoOperation(async () => {
         allUsers = await users.find();
@@ -518,6 +519,23 @@ async function processDataSheet(datasheet, wrikeTitles, users) {
         reject(`error creating datasheet: ${e}`);
       }
     } else {
+      let allUsers;
+      let userIdArr = [];
+      try {
+        await performMongoOperation(async () => {
+          allUsers = await users.find();
+        });
+        await allUsers.forEach((user) => {
+          if (user.wrikeUser) {
+            userIdArr.push(user.wrikeUser);
+          }
+        });
+      } catch (error) {
+        console.log(
+          `MongoDB operation failed after multiple retries: ${error}`
+        );
+        reject(error);
+      }
       try {
         const taskID = title.id;
         modifyTask(
@@ -538,7 +556,7 @@ async function processDataSheet(datasheet, wrikeTitles, users) {
           customFieldsArray,
           datasheet.status,
           null,
-          null
+          [...(datasheet.assingee == null ? userIdArr : [])]
         ).then(async (data) => {
           try {
             await wrikeTitles.findOneAndUpdate(

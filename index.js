@@ -399,25 +399,24 @@ app.post("/wrike/datasheet/reviewer", addAPIIdToReq, async (req, res) => {
 });
 
 app.post("/wrike/datasheet/assignee", async (req, res) => {
-  console.log(req.body);
-  // let client;
-  // let orderCollection;
-  // let users;
-  // try {
-  //   client = new MongoClient(process.env.mongoURL);
-  //   const db = client.db(process.env.mongoDB);
-  //   orderCollection = db.collection(process.env.mongoDatasheetCollection);
-  //   users = db.collection(process.env.mongoUserColection);
-  // } catch (error) {
-  //   console.error(`there was an issue accessing Mongo: ${error}`);
-  // }
+  // console.log(req.body);
+  let client;
+  let orderCollection;
+  let users;
+  try {
+    client = new MongoClient(process.env.mongoURL);
+    const db = client.db(process.env.mongoDB);
+    orderCollection = db.collection(process.env.mongoDatasheetCollection);
+    users = db.collection(process.env.mongoUserColection);
+  } catch (error) {
+    console.error(`there was an issue accessing Mongo: ${error}`);
+  }
 
-  // await modifyCustomFieldFromWrike(
-  //   req.body,
-  //   orderCollection,
-  //   users,
-  //   "datasheet"
-  // );
+  try {
+    await modifyUserFromWrike(req.body, orderCollection, users, "datasheet");
+  } catch (error) {
+    console.log(`error on wrike/datasheet/assignee route: ${error}`);
+  }
 
   res.status(202).send();
 });
@@ -726,7 +725,7 @@ app.post("/graph/datasheets", async (req, res) => {
         priority:
           graphDSPriorityToWrikeImportance[datasheet.fields.field_5] ||
           graphDSPriorityToWrikeImportance.Medium,
-        assignee: author?.wrikeUser,
+        assignee: author?.wrikeUser || null,
         status:
           dsCustomStatuses.filter((s) => s.name == datasheet.fields.Status)[0]
             ?.id ||

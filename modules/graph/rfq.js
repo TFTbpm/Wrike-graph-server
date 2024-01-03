@@ -27,51 +27,92 @@ async function modifyUserFromWrike(hooks, dataCollection, users, resource) {
           `there was an issue fetching the mongo entry: ${error}`
         );
       }
+      if (resource === "RFQ") {
+        // if adding an assignee
+        if (hook.addedResponsibles) {
+          const foundKey = await users.findOne({
+            wrikeUser: hook.addedResponsibles[0],
+          });
 
-      // if adding an assignee
-      if (hook.addedResponsibles) {
-        const foundKey = await users.findOne({
-          wrikeUser: hook.addedResponsibles[0],
-        });
+          console.log(foundKey);
 
-        console.log(foundKey);
+          if (!foundKey) {
+            console.log(`id is not stored! ID: ${hook.addedResponsibles}`);
+            continue;
+          }
 
-        if (!foundKey) {
-          console.log(`id is not stored! ID: ${hook.addedResponsibles}`);
-          continue;
+          // send data to power automate
+
+          body = JSON.stringify({
+            resource: resource,
+            data: `${foundKey.graphId}`,
+            id: parseInt(mongoEntry.graphID),
+            type: "ADD",
+            name: "null",
+            field: "AssignedId",
+          });
+        } else if (hook.removedResponsibles) {
+          const foundKey = await users.findOne({
+            wrikeUser: hook.removedResponsibles[0],
+          });
+
+          if (!foundKey) {
+            console.log(`id is not stored! ID: ${hook.removedResponsibles}`);
+            continue;
+          }
+
+          body = JSON.stringify({
+            resource: resource,
+            data: `${foundKey.graphId}`,
+            id: parseInt(mongoEntry.graphID),
+            type: "REMOVE",
+            name: "null",
+            field: "assignee",
+          });
+        } else {
+          console.log("Unexpected hook:", hook);
+          return false;
         }
+      } else if (resource === "datasheet") {
+        if (hook.addedResponsibles) {
+          const foundKey = await users.findOne({
+            wrikeUser: hook.addedResponsibles[0],
+          });
 
-        // send data to power automate
+          if (!foundKey) {
+            console.log(`id is not stored! ID: ${hook.removedResponsibles}`);
+            continue;
+          }
 
-        body = JSON.stringify({
-          resource: resource,
-          data: `${foundKey.graphId}`,
-          id: parseInt(mongoEntry.graphID),
-          type: "ADD",
-          name: "null",
-          field: "AssignedId",
-        });
-      } else if (hook.removedResponsibles) {
-        const foundKey = await users.findOne({
-          wrikeUser: hook.removedResponsibles[0],
-        });
+          body = JSON.stringify({
+            resource: resource,
+            data: `${foundKey.graphId}`,
+            id: parseInt(mongoEntry.graphID),
+            type: "ADD",
+            name: "null",
+            field: "Author0Id",
+          });
+        } else if (hook.removedResponsibles) {
+          const foundKey = await users.findOne({
+            wrikeUser: hook.removedResponsibles[0],
+          });
 
-        if (!foundKey) {
-          console.log(`id is not stored! ID: ${hook.removedResponsibles}`);
-          continue;
+          if (!foundKey) {
+            console.log(`id is not stored! ID: ${hook.removedResponsibles}`);
+            continue;
+          }
+          body = JSON.stringify({
+            resource: resource,
+            data: `${foundKey.graphId}`,
+            id: parseInt(mongoEntry.graphID),
+            type: "REMOVE",
+            name: "null",
+            field: "Author0Id",
+          });
+        } else {
+          console.log(`unexpected hook: ${hook}`);
+          return false;
         }
-
-        body = JSON.stringify({
-          resource: resource,
-          data: `${foundKey.graphId}`,
-          id: parseInt(mongoEntry.graphID),
-          type: "REMOVE",
-          name: "null",
-          field: "assignee",
-        });
-      } else {
-        console.log("Unexpected hook:", hook);
-        return false;
       }
     }
 
@@ -92,10 +133,10 @@ async function modifyUserFromWrike(hooks, dataCollection, users, resource) {
     }
   } catch (error) {
     console.error(
-      `There was an error processing the rfq: ${error}\n ${error.stack}`
+      `There was an error processing the user modification: ${error}\n ${error.stack}`
     );
     throw new Error(
-      `There was an error processing the rfq: ${error}\n ${error.stack}`
+      `There was an error processing the user modificiation: ${error}\n ${error.stack}`
     );
   }
 }
@@ -122,7 +163,6 @@ async function modifyCustomFieldFromWrike(hooks, collection, users, folder) {
         hook.customFieldId == process.env.wrike_field_reviewer &&
         folder === "rfq"
       ) {
-        console.log("reviewer rfq hook", hook);
         // if removing a reviewer
         if (hook.value == '""' || !hook.value) {
           body = JSON.stringify({
@@ -136,7 +176,7 @@ async function modifyCustomFieldFromWrike(hooks, collection, users, folder) {
           // if adding a reviewer
         } else {
           const foundKey = await users.findOne({ wrikeUser: hook.value });
-
+          // locate in database
           if (!foundKey) {
             console.log(`id is not stored! ID: ${hook.value}`);
             continue;
@@ -158,8 +198,6 @@ async function modifyCustomFieldFromWrike(hooks, collection, users, folder) {
         hook.customFieldId == process.env.wrike_field_reviewer &&
         folder === "datasheet"
       ) {
-        console.log("datasheet reviewer");
-
         if (hook.value == '""' || !hook.value) {
           body = JSON.stringify({
             resource: "datasheet",

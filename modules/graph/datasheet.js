@@ -30,7 +30,7 @@ async function getDatasheets(site_id, list_id, access_token) {
         );
       }
       if (!response.ok) {
-        console.error(`the response from orders failed: \n
+        console.error(`the response from datasheets failed: \n
       status: ${response.status} \n
       ${response.statusText}`);
       }
@@ -47,7 +47,9 @@ async function getDatasheets(site_id, list_id, access_token) {
   const filteredItems = allItems.slice(0, 5);
   const endTime = performance.now();
   console.log(
-    `${allItems.length} orders retrieved: (${(endTime - startTime) / 1000}s)`
+    `${allItems.length} datasheets retrieved: (${
+      (endTime - startTime) / 1000
+    }s)`
   );
 
   return filteredItems;
