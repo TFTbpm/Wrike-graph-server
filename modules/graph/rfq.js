@@ -12,7 +12,7 @@ async function getRFQData(site_id, list_id, access_token) {
 }
 
 // TODO: generalize this
-async function modifyUserFromWrike(hooks, dataCollection, users) {
+async function modifyUserFromWrike(hooks, dataCollection, users, resource) {
   let body;
   try {
     for (const hook of hooks) {
@@ -44,7 +44,7 @@ async function modifyUserFromWrike(hooks, dataCollection, users) {
         // send data to power automate
 
         body = JSON.stringify({
-          resource: "RFQ",
+          resource: resource,
           data: `${foundKey.graphId}`,
           id: parseInt(mongoEntry.graphID),
           type: "ADD",
@@ -62,7 +62,7 @@ async function modifyUserFromWrike(hooks, dataCollection, users) {
         }
 
         body = JSON.stringify({
-          resource: "RFQ",
+          resource: resource,
           data: `${foundKey.graphId}`,
           id: parseInt(mongoEntry.graphID),
           type: "REMOVE",
@@ -158,7 +158,7 @@ async function modifyCustomFieldFromWrike(hooks, collection, users, folder) {
         hook.customFieldId == process.env.wrike_field_reviewer &&
         folder === "datasheet"
       ) {
-        console.log("ds hook");
+        console.log("datasheet reviewer");
 
         if (hook.value == '""' || !hook.value) {
           body = JSON.stringify({

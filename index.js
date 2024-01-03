@@ -277,7 +277,7 @@ app.post("/wrike/rfq/assignee", async (req, res) => {
   }
 
   try {
-    result = await modifyUserFromWrike(req.body, wrikeTitles, users);
+    result = await modifyUserFromWrike(req.body, wrikeTitles, users, "RFQ");
   } catch (e) {
     console.log(e);
   }
@@ -711,6 +711,7 @@ app.post("/graph/datasheets", async (req, res) => {
   let datasheetPromises;
   try {
     datasheetPromises = datasheetData.map(async (datasheet) => {
+      // There is a front end "assingee" but nothing in the backend. This is not the sharepoint Author (AuthorId)
       let author = await users.findOne({
         graphId: datasheet.fields.Author0LookupId,
       });
