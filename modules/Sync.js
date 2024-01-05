@@ -151,6 +151,7 @@ async function findAndAddWrikeUID(UID) {
     console.error(`there was an error connecting to user db: ${error}`);
   }
   // search mongo for UID
+  console.log(`uid: ${UID}`);
   let mongoUser = await users.findOne({ wrikeHookId: UID });
 
   if (mongoUser) {
