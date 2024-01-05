@@ -125,7 +125,7 @@ async function modifyUserFromWrike(hooks, dataCollection, users, resource) {
         },
       });
       if (response.ok) {
-        console.log("modified user information for rfq");
+        console.log("modified user information");
         return true;
       }
     } catch (error) {
