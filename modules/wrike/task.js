@@ -380,7 +380,7 @@ async function processRFQ(rfq, wrikeTitles, users) {
           taskID,
           process.env.wrike_folder_rfq,
           process.env.wrike_perm_access_token,
-          null,
+          descriptionStr,
           null,
           rfq.priority,
           rfq.internalDueDate
