@@ -3,7 +3,7 @@ const { config } = require("dotenv");
 config();
 
 // TODO: add closing to wrike
-
+// TODO: handle asia names
 async function mapWrikeUsersToGraphIDs() {
   let client;
   let users;
