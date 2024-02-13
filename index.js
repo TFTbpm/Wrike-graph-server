@@ -709,7 +709,13 @@ app.post("/graph/datasheets", async (req, res) => {
 
       return {
         title: `(DS) ${datasheet.fields.Title}` || null,
-        description: null,
+        description: `${datasheet.fields.field_2
+          ?.split("\n")
+          .join(
+            "<br>"
+          )} <br> Link: https://eigoa.sharepoint.com/sites/TFTSales/Lists/Datasheet%20Priority%20List/DispForm.aspx?ID=${
+          datasheet.fields.id
+        }`,
         priority:
           graphDSPriorityToWrikeImportance[datasheet.fields.field_5] ||
           graphDSPriorityToWrikeImportance.Medium,
