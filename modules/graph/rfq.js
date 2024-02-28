@@ -1,6 +1,6 @@
 async function getRFQData(site_id, list_id, access_token) {
   const startTime = performance.now();
-  const url = `https://graph.microsoft.com/v1.0/sites/${site_id}/lists/${list_id}/items?expand=fields&$top=999&$skiptoken=UGFnZWQ9VFJVRSZwX0lEPTU2MzM`;
+  const url = `https://graph.microsoft.com/v1.0/sites/${site_id}/lists/${list_id}/items?expand=fields&$top=999&$skiptoken=UGFnZWQ9VFJVRSZwX0lEPTQ1MzY`;
   const requestOptions = {
     headers: {
       Authorization: `Bearer ${access_token}`,
@@ -16,6 +16,7 @@ async function getRFQData(site_id, list_id, access_token) {
   let data = await response.json();
   let allItems = [];
   let nextUrl;
+  allItems.push(...data.value);
 
   do {
     nextUrl = data["@odata.nextLink"];
