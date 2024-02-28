@@ -46,7 +46,7 @@ async function getRFQData(site_id, list_id, access_token) {
     (a, b) =>
       new Date(b.lastModifiedDateTime) - new Date(a.lastModifiedDateTime)
   );
-  filteredItems = filteredItems.slice(0, 100);
+  filteredItems = filteredItems.slice(0, 5);
   const endTime = performance.now();
   console.log(
     `${allItems.length} rfq retrieved: (${(endTime - startTime) / 1000}s)`
