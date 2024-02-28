@@ -560,12 +560,13 @@ app.post("/graph/rfq", async (req, res) => {
     process.env.graph_list_id_rfq,
     accessData.access_token
   );
+  console.log(rfqData);
 
   // TODO: get custom statuses, get customers (CF), add reveiwer to custom field reviewer
   // Puts all the elements in an easy to read format
   let rfqPromises;
   try {
-    rfqPromises = rfqData.value.map(async (element) => {
+    rfqPromises = rfqData.map(async (element) => {
       // console.log("start");
       let reviewer = await users.findOne({
         graphId: element.fields.ReviewerLookupId,
@@ -593,7 +594,7 @@ app.post("/graph/rfq", async (req, res) => {
             : element.fields.Internal_x0020_Due_x0020_Date
           : element.createdDateTime;
 
-      // console.log("end");
+      // console.log("end"); id
 
       return {
         title: element.fields.Title,

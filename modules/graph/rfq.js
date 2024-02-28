@@ -1,14 +1,58 @@
 async function getRFQData(site_id, list_id, access_token) {
-  const url = `https://graph.microsoft.com/v1.0/sites/${site_id}/lists/${list_id}/items?filter=contentType/name eq 'Request for Quote'&expand=fields&orderby=fields/Modified%20desc&top=5`;
+  const startTime = performance.now();
+  const url = `https://graph.microsoft.com/v1.0/sites/${site_id}/lists/${list_id}/items?expand=fields&$top=999&$skiptoken=UGFnZWQ9VFJVRSZwX0lEPTU2MzM`;
   const requestOptions = {
     headers: {
       Authorization: `Bearer ${access_token}`,
       Prefer: "HonorNonIndexedQueriesWarningMayFailRandomly",
     },
   };
-  const response = await fetch(url, requestOptions);
-  const data = await response.json();
-  return await data;
+  let response = await fetch(url, requestOptions);
+  if (!response.ok) {
+    console.error(`the initial response for rfq failed! \n
+    status: ${response.status} \n
+    ${response.statusText}`);
+  }
+  let data = await response.json();
+  let allItems = [];
+  let nextUrl;
+
+  do {
+    nextUrl = data["@odata.nextLink"];
+
+    if (nextUrl) {
+      try {
+        response = await fetch(nextUrl, requestOptions);
+      } catch (error) {
+        console.error(
+          `there was an error fetching the next rfq page: \n ${error}`
+        );
+      }
+      if (!response.ok) {
+        console.error(`the response from rfq failed: \n
+      status: ${response.status} \n
+      ${response.statusText}`);
+      }
+      data = await response.json();
+    }
+    allItems.push(...data.value);
+  } while (data["@odata.nextLink"]);
+
+  let filteredItems = allItems.filter(
+    (item) => item.contentType.name === "Request for Quote"
+  );
+
+  filteredItems = filteredItems.sort(
+    (a, b) =>
+      new Date(b.lastModifiedDateTime) - new Date(a.lastModifiedDateTime)
+  );
+  filteredItems = filteredItems.slice(0, 100);
+  const endTime = performance.now();
+  console.log(
+    `${allItems.length} rfq retrieved: (${(endTime - startTime) / 1000}s)`
+  );
+  // console.log(filteredItems);
+  return filteredItems;
 }
 
 // TODO: generalize this
