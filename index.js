@@ -560,7 +560,6 @@ app.post("/graph/rfq", async (req, res) => {
     process.env.graph_list_id_rfq,
     accessData.access_token
   );
-  console.log(rfqData);
 
   // TODO: get custom statuses, get customers (CF), add reveiwer to custom field reviewer
   // Puts all the elements in an easy to read format
