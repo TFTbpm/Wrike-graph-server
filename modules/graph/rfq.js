@@ -1,4 +1,4 @@
-async function getRFQData(site_id, list_id, access_token) {
+async function getRFQData(site_id, list_id, access_token, numRefresh) {
   const startTime = performance.now();
   const url = `https://graph.microsoft.com/v1.0/sites/${site_id}/lists/${list_id}/items?expand=fields&$top=999&$skiptoken=UGFnZWQ9VFJVRSZwX0lEPTQ1MzY`;
   const requestOptions = {
@@ -47,7 +47,7 @@ async function getRFQData(site_id, list_id, access_token) {
     (a, b) =>
       new Date(b.lastModifiedDateTime) - new Date(a.lastModifiedDateTime)
   );
-  filteredItems = filteredItems.slice(0, 5);
+  filteredItems = filteredItems.slice(0, numRefresh);
   const endTime = performance.now();
   console.log(
     `${allItems.length} rfq retrieved: (${(endTime - startTime) / 1000}s)`
