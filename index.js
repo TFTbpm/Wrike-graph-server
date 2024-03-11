@@ -24,6 +24,7 @@ const {
   findAndAddWrikeUID,
 } = require("./modules/Sync");
 const { schedule } = require("node-cron");
+const fs = require("fs");
 
 // dotenv config
 config();
@@ -514,6 +515,62 @@ app.post("/rfq/sync", async (req, res) => {
     console.error(`something went wrong: ${error} \n ${error.stack}`);
   }
   res.status(200).send();
+});
+
+app.post("/users/sync", async (req, res) => {
+  // get date for backup name
+  let date = new Date();
+  const month = date.toLocaleString("default", { month: "long" });
+
+  // connect to mongodb user collection
+  let users;
+  try {
+    const client = new MongoClient(process.env.mongoURL);
+    const db = client.db(process.env.mongoDB);
+    users = db.collection(process.env.mongoUserColection);
+  } catch (error) {
+    console.error(
+      `There was an issue connecting to the user collection: \n ${error} \n ${error.stack}`
+    );
+    res.status(500).send("ERROR");
+    return;
+  }
+
+  // get entire collection and save a backup
+  try {
+    let arr = await users.find({}).toArray();
+    // Create backup before running function
+    fs.writeFileSync(
+      `./mongo_backup/Mar2024/Users${date.getDate()}${month}${date.getFullYear()}[AUTO].json`,
+      JSON.stringify(arr)
+    );
+  } catch (error) {
+    console.error(
+      `There was an error creating the backup for users \n ${error} \n ${error.stack}`
+    );
+    res.status(500).send("ERROR");
+    // return because we don't want to proceed if we don't have a backup
+    return;
+  }
+
+  // Perform operations on collection data
+  try {
+    arr.forEach((user) => {
+      // Add filter function here:
+
+      if (user.id) {
+        // ! put in delete function here
+      }
+    });
+  } catch (error) {
+    console.error(
+      `There was an error filtering the user collection \n ${error} \n ${error.stack}`
+    );
+    res.status(500).send("ERROR");
+    return;
+  }
+
+  res.status(200).send("ok");
 });
 
 app.post("/graph/*", async (req, res, next) => {
