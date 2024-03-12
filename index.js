@@ -537,8 +537,9 @@ app.post("/users/sync", async (req, res) => {
   }
 
   // get entire collection and save a backup
+  let arr;
   try {
-    let arr = await users.find({}).toArray();
+    arr = await users.find({}).toArray();
     // Create backup before running function
     fs.writeFileSync(
       `./mongo_backup/Mar2024/Users${date.getDate()}${month}${date.getFullYear()}[AUTO].json`,
@@ -555,11 +556,12 @@ app.post("/users/sync", async (req, res) => {
 
   // Perform operations on collection data
   try {
-    arr.forEach((user) => {
+    arr.forEach(async (user) => {
       // Add filter function here:
 
       if (user.id) {
         // ! put in delete function here
+        // await users.deleteOne({ id: user.id });
       }
     });
   } catch (error) {
