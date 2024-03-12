@@ -23,6 +23,8 @@ const {
   syncWrikeToCollection,
   findAndAddWrikeUID,
 } = require("./modules/Sync");
+const { schedule } = require("node-cron");
+const fs = require("fs");
 
 // dotenv config
 config();
@@ -177,15 +179,17 @@ const addAPIIdToReq = async (req, res, next) => {
       const result = await findAndAddWrikeUID(req.body[0].value);
       console.log(`res ${JSON.stringify(result)}`);
 
-      // Modify the 'req' object to include the user information
-      req.body[0].value = result.wrikeUser;
+      if (result) {
+        // Modify the 'req' object to include the user information
+        req.body[0].value = result?.wrikeUser;
+      }
 
       // Call next middleware in the stack
       await next();
     }
   } catch (error) {
     console.error(`Error in findAndAddWrikeUIDMiddleware: ${error}`);
-    res.status(500).json({ success: false, error: "Internal server error" });
+    res.status(202).json({ success: false, error: "Internal server error" });
   }
 };
 
@@ -513,6 +517,64 @@ app.post("/rfq/sync", async (req, res) => {
   res.status(200).send();
 });
 
+app.post("/users/sync", async (req, res) => {
+  // get date for backup name
+  let date = new Date();
+  const month = date.toLocaleString("default", { month: "long" });
+
+  // connect to mongodb user collection
+  let users;
+  try {
+    const client = new MongoClient(process.env.mongoURL);
+    const db = client.db(process.env.mongoDB);
+    users = db.collection(process.env.mongoUserColection);
+  } catch (error) {
+    console.error(
+      `There was an issue connecting to the user collection: \n ${error} \n ${error.stack}`
+    );
+    res.status(500).send("ERROR");
+    return;
+  }
+
+  // get entire collection and save a backup
+  let arr;
+  try {
+    arr = await users.find({}).toArray();
+    // Create backup before running function
+    fs.writeFileSync(
+      `./mongo_backup/Mar2024/Users${date.getDate()}${month}${date.getFullYear()}[AUTO].json`,
+      JSON.stringify(arr)
+    );
+  } catch (error) {
+    console.error(
+      `There was an error creating the backup for users \n ${error} \n ${error.stack}`
+    );
+    res.status(500).send("ERROR");
+    // return because we don't want to proceed if we don't have a backup
+    return;
+  }
+
+  // Perform operations on collection data
+  try {
+    arr.forEach(async (user) => {
+      // Add filter function here:
+
+      if (user.id) {
+        // ! put in delete function here
+        // await users.deleteOne({ id: user.id });
+      }
+    });
+  } catch (error) {
+    console.error(
+      `There was an error filtering the user collection \n ${error} \n ${error.stack}`
+    );
+    res.status(500).send("ERROR");
+    return;
+  }
+
+  res.status(200).send("ok");
+});
+
 app.post("/graph/*", async (req, res, next) => {
   if (req.url.includes("validationToken=")) {
     // have to check for %3A with a regex and replace matches since decodeURI treats them as special char
@@ -536,134 +598,9 @@ app.post("/graph/*", async (req, res, next) => {
 });
 
 app.post("/graph/rfq", async (req, res) => {
-  let client;
-  let wrikeTitles;
-  let users;
-
-  try {
-    client = new MongoClient(process.env.mongoURL);
-    await client.connect();
-    const db = client.db(process.env.mongoDB);
-    wrikeTitles = db.collection(process.env.mongoRFQCollection);
-    users = db.collection(process.env.mongoUserColection);
-  } catch (error) {
-    console.error(
-      `there was an error connecting to mongo (/graph/rfq): ${error}`
-    );
+  if (await refreshRFQs(5)) {
+    res.status(200).send("good");
   }
-
-  const accessData = await graphAccessData();
-  let rfqData = await getRFQData(
-    process.env.graph_site_id_sales,
-    process.env.graph_list_id_rfq,
-    accessData.access_token
-  );
-
-  // TODO: get custom statuses, get customers (CF), add reveiwer to custom field reviewer
-  // Puts all the elements in an easy to read format
-  let rfqPromises;
-  try {
-    rfqPromises = rfqData.value.map(async (element) => {
-      // console.log("start");
-      let reviewer = await users.findOne({
-        graphId: element.fields.ReviewerLookupId,
-      });
-      let assigned = await users.findOne({
-        graphId: element.fields.AssignedLookupId,
-      });
-
-      // some rfqs are input after they're due, in which case start date needs to move to due date:
-
-      let startDate = new Date(element.createdDateTime);
-      const internalDueDate = new Date(
-        element.fields.Internal_x0020_Due_x0020_Date
-      );
-      const requestedDate = new Date(
-        element.fields.Customer_x0020_Requested_x0020_Date
-      );
-
-      // if start date is after either then set the start date to that date
-      startDate =
-        requestedDate.getTime() < startDate.getTime() ||
-        internalDueDate.getTime() < startDate.getTime()
-          ? requestedDate.getTime() < internalDueDate.getTime()
-            ? element.fields.Customer_x0020_Requested_x0020_Date
-            : element.fields.Internal_x0020_Due_x0020_Date
-          : element.createdDateTime;
-
-      // console.log("end");
-
-      return {
-        title: element.fields.Title,
-        url: element.fields._dlc_DocIdUrl.Url,
-        accountType: element.fields.Account_x0020_Type,
-        contactEmail: element.fields.Contact_x0020_Email,
-        contactName: element.fields.Contact_x0020_Name,
-        customerName: element.fields.Customer_x0020_Name,
-        customerRequestedDate:
-          element.fields.Customer_x0020_Requested_x0020_Date,
-        internalDueDate:
-          element.fields.Internal_x0020_Due_x0020_Date ||
-          element.fields.Customer_x0020_Requested_x0020_Date,
-        startDate: startDate,
-        numberOfLineItems:
-          element.fields.Number_x0020_of_x0020_Line_x0020_Items,
-        priority:
-          graphRFQPriorityToWrikeImportance[element.fields.Priority] ||
-          graphRFQPriorityToWrikeImportance.Medium,
-        quoteSource: element.fields.Quote_x0020_Source,
-        status:
-          rfqCustomStatuses.filter((s) => s.name == element.fields.Status)[0]
-            .id || "IEAF5SOTJMEAFYJS",
-        submissionMethod: element.fields.Submission_x0020_Method,
-        modified: element.fields.Modified,
-        id: element.id,
-        assinged: assigned?.wrikeUser,
-        reviewer: reviewer?.wrikeUser,
-      };
-    });
-  } catch (error) {
-    console.error(
-      `there was an error iterating rfqs : ${error} \n ${error.stack}`
-    );
-  }
-
-  let currentHistory;
-  try {
-    currentHistory = await Promise.all(rfqPromises);
-  } catch (error) {
-    console.error(`there was an error in rfq promises: ${error}`);
-  }
-
-  let processPromises;
-  try {
-    // console.log("yup");
-    processPromises = currentHistory.map(async (rfq) => {
-      try {
-        return await processRFQ(rfq, wrikeTitles, users);
-      } catch (e) {
-        console.error(
-          `there was an issue processing RFQs (in route /graph/rfq): ${e} \n ${e.stack}`
-        );
-        return false;
-      }
-    });
-    try {
-      await Promise.all(processPromises);
-    } catch (error) {
-      console.error(`error resolving processPromises: ${error}`);
-    }
-  } catch (e) {
-    console.log(`error mapping rfq: ${e}`);
-  } finally {
-    try {
-      await client?.close();
-    } catch (error) {
-      console.error(`couldn't close client: ${error} \n ${error.stack}`);
-    }
-  }
-
-  res.status(200).send("good");
 });
 
 app.post("/graph/datasheets", async (req, res) => {
@@ -879,6 +816,148 @@ app.use("*", (req, res) => {
 
 app.listen(5501, () => {
   console.log("running server");
+});
+
+async function refreshRFQs(numRefresh) {
+  let client;
+  let wrikeTitles;
+  let users;
+
+  try {
+    client = new MongoClient(process.env.mongoURL);
+    await client.connect();
+    const db = client.db(process.env.mongoDB);
+    wrikeTitles = db.collection(process.env.mongoRFQCollection);
+    users = db.collection(process.env.mongoUserColection);
+  } catch (error) {
+    console.error(
+      `there was an error connecting to mongo (/graph/rfq): ${error}`
+    );
+  }
+
+  const accessData = await graphAccessData();
+  let rfqData = await getRFQData(
+    process.env.graph_site_id_sales,
+    process.env.graph_list_id_rfq,
+    accessData.access_token,
+    numRefresh
+  );
+
+  // TODO: get custom statuses, get customers (CF), add reveiwer to custom field reviewer
+  // Puts all the elements in an easy to read format
+  let rfqPromises;
+  try {
+    rfqPromises = rfqData.map(async (element) => {
+      // console.log("start");
+      let reviewer = await users.findOne({
+        graphId: element.fields.ReviewerLookupId,
+      });
+      let assigned = await users.findOne({
+        graphId: element.fields.AssignedLookupId,
+      });
+
+      // some rfqs are input after they're due, in which case start date needs to move to due date:
+
+      let startDate = new Date(element.createdDateTime);
+      const internalDueDate = new Date(
+        element.fields.Internal_x0020_Due_x0020_Date
+      );
+      const requestedDate = new Date(
+        element.fields.Customer_x0020_Requested_x0020_Date
+      );
+
+      // if start date is after either then set the start date to that date
+      startDate =
+        requestedDate.getTime() < startDate.getTime() ||
+        internalDueDate.getTime() < startDate.getTime()
+          ? requestedDate.getTime() < internalDueDate.getTime()
+            ? element.fields.Customer_x0020_Requested_x0020_Date
+            : element.fields.Internal_x0020_Due_x0020_Date
+          : element.createdDateTime;
+
+      // console.log("end"); id
+
+      return {
+        title: element.fields.Title,
+        url: element.fields._dlc_DocIdUrl.Url,
+        accountType: element.fields.Account_x0020_Type,
+        contactEmail: element.fields.Contact_x0020_Email,
+        contactName: element.fields.Contact_x0020_Name,
+        customerName: element.fields.Customer_x0020_Name,
+        customerRequestedDate:
+          element.fields.Customer_x0020_Requested_x0020_Date,
+        internalDueDate:
+          element.fields.Internal_x0020_Due_x0020_Date ||
+          element.fields.Customer_x0020_Requested_x0020_Date,
+        startDate: startDate,
+        numberOfLineItems:
+          element.fields.Number_x0020_of_x0020_Line_x0020_Items,
+        priority:
+          graphRFQPriorityToWrikeImportance[element.fields.Priority] ||
+          graphRFQPriorityToWrikeImportance.Medium,
+        quoteSource: element.fields.Quote_x0020_Source,
+        status:
+          rfqCustomStatuses.filter((s) => s.name == element.fields.Status)[0]
+            .id || "IEAF5SOTJMEAFYJS",
+        submissionMethod: element.fields.Submission_x0020_Method,
+        modified: element.fields.Modified,
+        id: element.id,
+        assinged: assigned?.wrikeUser,
+        reviewer: reviewer?.wrikeUser,
+      };
+    });
+  } catch (error) {
+    console.error(
+      `there was an error iterating rfqs : ${error} \n ${error.stack}`
+    );
+  }
+
+  let currentHistory;
+  try {
+    currentHistory = await Promise.all(rfqPromises);
+  } catch (error) {
+    console.error(`there was an error in rfq promises: ${error}`);
+  }
+
+  let processPromises;
+  try {
+    // console.log("yup");
+    processPromises = currentHistory.map(async (rfq) => {
+      try {
+        return await processRFQ(rfq, wrikeTitles, users);
+      } catch (e) {
+        console.error(
+          `there was an issue processing RFQs (in route /graph/rfq): ${e} \n ${e.stack}`
+        );
+        return false;
+      }
+    });
+    try {
+      await Promise.all(processPromises);
+    } catch (error) {
+      console.error(`error resolving processPromises: ${error}`);
+    }
+  } catch (e) {
+    console.log(`error mapping rfq: ${e}`);
+  } finally {
+    try {
+      await client?.close();
+    } catch (error) {
+      console.error(`couldn't close client: ${error} \n ${error.stack}`);
+    }
+  }
+  return true;
+}
+
+schedule("0 12 * * *", async () => {
+  // Schedule refreshes every day at 6 AM
+  try {
+    console.log("6am refresh...");
+    refreshRFQs(75);
+    console.log("complete");
+  } catch (error) {
+    console.error(error); // Log any errors
+  }
 });
 
 app.listen();
