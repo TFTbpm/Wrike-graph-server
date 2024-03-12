@@ -721,7 +721,7 @@ app.post("/graph/order", async (req, res) => {
     client = new MongoClient(process.env.mongoURL);
     await client.connect();
     const db = client.db(process.env.mongoDB);
-    wrikeTitles = db.collection(process.env.mongoRFQCollection);
+    wrikeTitles = db.collection(process.env.mongoOrderCollection);
     users = db.collection(process.env.mongoUserColection);
   } catch (error) {
     console.error(
