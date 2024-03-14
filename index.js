@@ -816,7 +816,7 @@ app.use("*", (req, res) => {
 
 const port = process.env.PORT || 5501;
 app.listen(port, () => {
-  console.log("running server");
+  console.log(`running server on port ${port}`);
 });
 
 async function refreshRFQs(numRefresh) {
