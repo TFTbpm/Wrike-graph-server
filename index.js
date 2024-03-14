@@ -814,7 +814,8 @@ app.use("*", (req, res) => {
   res.status(400).send("Something went wrong");
 });
 
-app.listen(5501, () => {
+const port = process.env.PORT || 5501;
+app.listen(port, () => {
   console.log("running server");
 });
 
