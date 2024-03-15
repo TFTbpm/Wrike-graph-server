@@ -579,18 +579,20 @@ app.post("/users/sync", async (req, res) => {
 app.post("/graph/*", async (req, res, next) => {
   if (req.url.includes("validationToken=")) {
     console.log(`req.url: ${req.url}`);
-    console.log(
-      `validation token: ${decodeURI(
-        req.url.replace(/%3A/g, ":").split("validationToken=")[1]
-      )}`
-    );
+
+    // Extract the validation token value from the URL
+    const tokenValue = req.url.split("validationToken=")[1];
+
+    // Decode the URI component of the token value and replace '%3A' with ':'
+    const decodedToken = decodeURIComponent(tokenValue).replace(/%3A/g, ":");
+
+    // Construct the desired format
+    const formattedToken = `validation token: ${decodedToken}`;
+
+    console.log(`formattedToken: ${formattedToken}`);
+
     // have to check for %3A with a regex and replace matches since decodeURI treats them as special char
-    res
-      .contentType("text/plain")
-      .status(200)
-      .send(
-        decodeURI(req.url.replace(/%3A/g, ":").split("validationToken=")[1])
-      );
+    res.contentType("text/plain").status(200).send(formattedToken);
     return;
   }
 
