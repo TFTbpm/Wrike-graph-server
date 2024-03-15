@@ -195,6 +195,7 @@ const addAPIIdToReq = async (req, res, next) => {
 
 // just used to verify the server is running
 app.get("/", (req, res) => {
+  console.log(`requester on /`);
   res.send("up on /");
 });
 
@@ -577,6 +578,12 @@ app.post("/users/sync", async (req, res) => {
 
 app.post("/graph/*", async (req, res, next) => {
   if (req.url.includes("validationToken=")) {
+    console.log(`req.url: ${req.url}`);
+    console.log(
+      `validation token: ${decodeURI(
+        req.url.replace(/%3A/g, ":").split("validationToken=")[1]
+      )}`
+    );
     // have to check for %3A with a regex and replace matches since decodeURI treats them as special char
     res
       .contentType("text/plain")
