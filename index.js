@@ -584,11 +584,10 @@ app.post("/graph/*", async (req, res, next) => {
     const tokenValue = req.url.split("validationToken=")[1];
 
     // Decode the URI component of the token value and replace '%3A' with ':'
-    let decodedToken = decodeURI(tokenValue).replace(/%3A/g, ":");
-    decodedToken = decodedToken.replace(/\+/g, " ");
+    const decodedToken = decodeURIComponent(tokenValue).replace(/%3A/g, ":");
+    const formattedToken = decodedToken.replace(/\+/g, " ");
 
     // Construct the desired format
-    const formattedToken = `${decodedToken}`;
 
     console.log(`formattedToken: ${formattedToken}`);
 
