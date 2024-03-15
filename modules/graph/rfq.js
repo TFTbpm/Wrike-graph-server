@@ -115,7 +115,7 @@ async function modifyUserFromWrike(hooks, dataCollection, users, resource) {
             field: "assignee",
           });
         } else {
-          console.log("Unexpected hook:", hook);
+          console.log("Unexpected hook:", JSON.stringify(hook));
           return false;
         }
       } else if (resource === "datasheet") {
@@ -155,7 +155,7 @@ async function modifyUserFromWrike(hooks, dataCollection, users, resource) {
             field: "Author0Id",
           });
         } else {
-          console.log(`unexpected hook: ${hook}`);
+          console.log(`unexpected hook: ${JSON.stringify(hook)}`);
           return false;
         }
       }
