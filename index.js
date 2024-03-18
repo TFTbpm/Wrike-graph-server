@@ -607,8 +607,12 @@ app.post("/graph/*", async (req, res, next) => {
 });
 
 app.post("/graph/rfq", async (req, res) => {
-  if (await refreshRFQs(5)) {
-    res.status(200).send("good");
+  try {
+    if (await refreshRFQs(5)) {
+      res.status(200).send("good");
+    }
+  } catch (error) {
+    console.log(`error refreshing RFQs: ${error} \n ${error.stack}`);
   }
 });
 
