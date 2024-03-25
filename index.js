@@ -465,6 +465,60 @@ app.post("/wrike/rfq/delete", async (req, res) => {
   res.status(202).send();
 });
 
+app.post("/wrike/rfq/status", addAPIIdToReq, async (req, res) => {
+  const { taskId, newCustomStatusId } = req.body;
+
+  const newStatus = rfqCustomStatuses.find(
+    (status) => status.id === newCustomStatusId
+  )?.name;
+
+  if (!newStatus) {
+    return res.status(202).send("Status not found.");
+  }
+
+  let client;
+
+  try {
+    client = new MongoClient(process.env.mongoURL);
+
+    await client.connect();
+    const db = client.db(process.env.mongoDB);
+    const rfqs = db.collection(process.env.mongoRFQCollection);
+    const rfq = await rfqs.findOne({ id: taskId });
+
+    if (!rfq) {
+      return res.status(202).send("RFQ not found.");
+    }
+
+    fetch(process.env.graph_power_automate_uri, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        resource: "RFQ",
+        id: rfq.graphID,
+        data: newStatus,
+        type: "CHANGE",
+        name: "null",
+        field: "Status",
+      }),
+    }).catch((error) => {
+      console.error("Error sending request to Graph Power Automate:", error);
+    });
+
+    res.status(202).send("Request to update RFQ status sent.");
+  } catch (error) {
+    console.error("Error updating RFQ status:", error);
+
+    res.status(202).send("Failed to update RFQ status.");
+  } finally {
+    if (client) {
+      await client.close();
+    }
+  }
+});
+
 app.post("/wrike/order/delete", async (req, res) => {
   let client;
   let orders;
