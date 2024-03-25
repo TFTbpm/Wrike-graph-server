@@ -967,7 +967,7 @@ schedule("0 12 * * *", async () => {
   // Schedule refreshes every day at 6 AM
   try {
     console.log("6am refresh...");
-    refreshRFQs(75);
+    refreshRFQs(50);
     console.log("complete");
   } catch (error) {
     console.error(error); // Log any errors
