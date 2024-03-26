@@ -501,7 +501,7 @@ app.post("/wrike/rfq/status", addAPIIdToReq, async (req, res) => {
         data: newStatus,
         type: "CHANGE",
         name: "null",
-        field: "Status",
+        field: "status",
       }),
     }).catch((error) => {
       console.error("Error sending request to Graph Power Automate:", error);
