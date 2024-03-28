@@ -252,6 +252,27 @@ async function getTasks(taskId, access_token) {
   }
 }
 
+async function getComments(taskId, access_token) {
+  taskId = `/${taskId}` || "";
+  try {
+    let URI = `https://www.wrike.com/api/v4/tasks${taskId}/comments/`;
+    console.log(URI);
+    const response = await fetch(URI, {
+      headers: {
+        Authorization: `Bearer ${access_token}`,
+      },
+    });
+    if (!response.ok) {
+      throw new Error(`Request failed with status ${response.status}`);
+    }
+    const data = await response.json();
+    return await data;
+  } catch (error) {
+    console.error(`An error occured while getting a task: ${error}`);
+    throw error;
+  }
+}
+
 // TODO: update the given RFQ if found and replace title, check for both title and rfq.id  (ln 275)
 async function processRFQ(rfq, wrikeTitles, users) {
   return new Promise(async (resolve, reject) => {
@@ -664,6 +685,7 @@ module.exports = {
   processRFQ,
   processDataSheet,
   processOrder,
+  getComments,
 };
 
 async function performMongoOperation(operation, retries = 0) {

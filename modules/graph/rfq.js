@@ -1,3 +1,6 @@
+const getAttachments = require("../wrike/getAttachments");
+const { getTasks, getComments } = require("../wrike/task");
+
 async function getRFQData(site_id, list_id, access_token, numRefresh) {
   const startTime = performance.now();
   const url = `https://graph.microsoft.com/v1.0/sites/${site_id}/lists/${list_id}/items?expand=fields&$top=999&$skiptoken=UGFnZWQ9VFJVRSZwX0lEPTQ1MzY`;
@@ -313,8 +316,46 @@ async function modifyCustomFieldFromWrike(hooks, collection, users, folder) {
   }
 }
 
+async function createRFQEntry(hook, users, accessToken) {
+  // use the info from the hook, get all information associated with that task
+  let taskData = await getTasks(hook.taskId, accessToken);
+  taskData = taskData.data[0];
+  const taskComments = await getComments(hook.taskId, accessToken);
+  const assigned = [];
+  taskData.responsibleIds.forEach(async (responsible) => {
+    let user = await users.findOne({ wrikeUser: responsible });
+    assigned.push(user);
+  });
+
+  let wrikeData = `Title:\n${taskData.title}\n\nDescription:\n${taskData.description}\n\nComments: \n`;
+
+  // TODO: add users in here
+  taskComments.data.forEach(async (comment) => {
+    let user = await users.findOne({ wrikeUser: comment.authorId });
+    wrikeData =
+      wrikeData + `${user} [${comment.createdDate}] - ${comment.text}\n`;
+  });
+
+  let attachmentData = await getAttachments(hook.taskId, accessToken);
+
+  const requestBody = {
+    title: taskData.title,
+    description: taskData.description,
+    completedDate: hook.lastUpdateDate,
+    assigned: assigned,
+    customer: taskData.customFields.find(
+      (field) => field.id === "IEAF5SOTJUAFB2KU"
+    )?.value,
+    type: taskData.customFields.find((field) => field.id === "IEAF5SOTJUAFTWBJ")
+      ?.value,
+    attachments: "attachmentData.attachment",
+  };
+  // Throw everything at power automate
+}
+
 module.exports = {
   getRFQData,
   modifyUserFromWrike,
   modifyCustomFieldFromWrike,
+  createRFQEntry,
 };

@@ -13,10 +13,11 @@ const {
   getRFQData,
   modifyUserFromWrike,
   modifyCustomFieldFromWrike,
+  createRFQEntry,
 } = require("./modules/graph/rfq");
 const getDatasheets = require("./modules/graph/datasheet");
 const { getOrders, addOrder } = require("./modules/graph/order");
-const getOrderAttachment = require("./modules/wrike/getOrderAttachment");
+const getAttachments = require("./modules/wrike/getAttachments");
 const { MongoClient } = require("mongodb");
 const {
   mapWrikeUsersToGraphIDs,
@@ -319,17 +320,36 @@ app.post("/wrike/rfq/reviewer", addAPIIdToReq, async (req, res) => {
   res.status(202).send();
 });
 
+app.post("/wrike/rfq/completed", async (req, res) => {
+  let users;
+
+  try {
+    const client = new MongoClient(process.env.mongoURL);
+    const db = client.db(process.env.mongoDB);
+    users = db.collection(process.env.mongoUserColection);
+  } catch (error) {
+    console.error(`there was an issue accessing Mongo: ${error}`);
+  }
+
+  req.body.forEach((hook) => {
+    console.log(hook);
+    if (hook.status === "Completed") {
+      createRFQEntry(hook, users, process.env.wrike_perm_access_token);
+    }
+  });
+});
+
 app.post("/wrike/order", async (req, res) => {
   let start = performance.now();
   // console.log(req.body);
   if (req.body[0].status == "Completed") {
     console.log("this status is complete");
     // get attachment
-    const data = await getOrderAttachment(
+    const data = await getAttachments(
       req.body[0].taskId,
       process.env.wrike_perm_access_token
     );
-    const bufferString = data.attachment.toString("base64");
+    const bufferString = data.attachment[0].toString("base64");
     const fileHash = crypto
       .createHash("sha256")
       .update(data.data[0].name)

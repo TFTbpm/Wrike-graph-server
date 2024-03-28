@@ -1,4 +1,4 @@
-async function getOrderAttachment(taskID, accessToken) {
+async function getAttachments(taskID, accessToken) {
   const URL = `https://www.wrike.com/api/v4/tasks/${taskID}/attachments`;
   const requestOptions = {
     headers: {
@@ -14,9 +14,15 @@ async function getOrderAttachment(taskID, accessToken) {
         );
       }
       const data = await response.json();
-      // console.log(data);
-      const attachment = await downloadAttachment(data.data[0].id, accessToken);
-      return { attachment: attachment, data: data.data };
+      // array of all the attachment ids in task
+      const attachmentIdArr = data.data.map((attachment) => attachment.id);
+      // array of the data of the arrays from the id array
+      const attachmentArr = await Promise.all(
+        attachmentIdArr.map(async (attachmentId) => {
+          return await downloadAttachment(attachmentId, accessToken);
+        })
+      );
+      return { attachment: attachmentArr, data: data.data };
     } catch (error) {
       throw new Error(`there was an error getting attachment: ${error}`);
     }
@@ -68,4 +74,4 @@ async function retry(retries, func) {
   }
 }
 
-module.exports = getOrderAttachment;
+module.exports = getAttachments;
