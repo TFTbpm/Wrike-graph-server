@@ -348,7 +348,7 @@ app.post("/wrike/order", async (req, res) => {
       req.body[0].taskId,
       process.env.wrike_perm_access_token
     );
-    const bufferString = data.attachment[0].toString("base64");
+    const bufferString = data.attachment[0].data.toString("base64");
     const fileHash = crypto
       .createHash("sha256")
       .update(data.data[0].name)

@@ -329,18 +329,20 @@ async function createRFQEntry(hook, users, accessToken) {
   let assigned = await Promise.all(
     taskData.responsibleIds.map(async (responsible) => {
       let user = await users.findOne({ wrikeUser: responsible });
-      return await user.name;
+      return await user.graphId;
     })
   );
 
   let wrikeData = `Title:\n${taskData.title}\n\nDescription:\n${taskData.description}\n\nComments: \n`;
+  let wrikeComments = "";
+  Promise.all(
+    taskComments.data.map(async (comment) => {
+      let user = await users.findOne({ wrikeUser: comment.authorId });
+      wrikeComments += `${user} [${comment.createdDate}] - ${comment.text}\n`;
+    })
+  );
 
-  // TODO: add users in here
-  taskComments.data.forEach(async (comment) => {
-    let user = await users.findOne({ wrikeUser: comment.authorId });
-    wrikeData =
-      wrikeData + `${user} [${comment.createdDate}] - ${comment.text}\n`;
-  });
+  wrikeData = Buffer.from(wrikeData + wrikeComments);
 
   let attachmentData = await getAttachments(hook.taskId, accessToken);
 
@@ -355,7 +357,8 @@ async function createRFQEntry(hook, users, accessToken) {
     type:
       taskData.customFields.find((field) => field.id === "IEAF5SOTJUAFTWBJ")
         ?.value || "",
-    attachments: "attachmentData.attachment" || "",
+    wrikeData: wrikeData || "",
+    attachments: attachmentData || "",
   };
   console.log(requestBody);
   // Throw everything at power automate

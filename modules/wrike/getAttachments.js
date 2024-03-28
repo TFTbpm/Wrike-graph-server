@@ -14,15 +14,18 @@ async function getAttachments(taskID, accessToken) {
         );
       }
       const data = await response.json();
-      // array of all the attachment ids in task
-      const attachmentIdArr = data.data.map((attachment) => attachment.id);
       // array of the data of the arrays from the id array
       const attachmentArr = await Promise.all(
-        attachmentIdArr.map(async (attachmentId) => {
-          return await downloadAttachment(attachmentId, accessToken);
+        data.data.map(async (attachment) => {
+          const buffer = await downloadAttachment(attachment.id, accessToken);
+          console.log(buffer);
+          return {
+            name: attachment.name,
+            data: buffer,
+          };
         })
       );
-      return { attachment: attachmentArr, data: data.data };
+      return attachmentArr;
     } catch (error) {
       throw new Error(`there was an error getting attachment: ${error}`);
     }
