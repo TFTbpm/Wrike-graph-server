@@ -321,11 +321,17 @@ async function createRFQEntry(hook, users, accessToken) {
   let taskData = await getTasks(hook.taskId, accessToken);
   taskData = taskData.data[0];
   const taskComments = await getComments(hook.taskId, accessToken);
-  const assigned = [];
-  taskData.responsibleIds.forEach(async (responsible) => {
-    let user = await users.findOne({ wrikeUser: responsible });
-    assigned.push(user);
-  });
+
+  // const attachmentArr = await Promise.all(
+  //   attachmentIdArr.map(async (attachmentId) => {
+  //     return await downloadAttachment(attachmentId, accessToken);
+  //   })
+  let assigned = await Promise.all(
+    taskData.responsibleIds.map(async (responsible) => {
+      let user = await users.findOne({ wrikeUser: responsible });
+      return await user.name;
+    })
+  );
 
   let wrikeData = `Title:\n${taskData.title}\n\nDescription:\n${taskData.description}\n\nComments: \n`;
 
@@ -339,17 +345,19 @@ async function createRFQEntry(hook, users, accessToken) {
   let attachmentData = await getAttachments(hook.taskId, accessToken);
 
   const requestBody = {
-    title: taskData.title,
-    description: taskData.description,
-    completedDate: hook.lastUpdateDate,
-    assigned: assigned,
-    customer: taskData.customFields.find(
-      (field) => field.id === "IEAF5SOTJUAFB2KU"
-    )?.value,
-    type: taskData.customFields.find((field) => field.id === "IEAF5SOTJUAFTWBJ")
-      ?.value,
-    attachments: "attachmentData.attachment",
+    title: taskData.title || "",
+    description: taskData.description || "",
+    completedDate: hook.lastUpdatedDate || "",
+    assigned: assigned || "",
+    customer:
+      taskData.customFields.find((field) => field.id === "IEAF5SOTJUAFB2KU")
+        ?.value || "",
+    type:
+      taskData.customFields.find((field) => field.id === "IEAF5SOTJUAFTWBJ")
+        ?.value || "",
+    attachments: "attachmentData.attachment" || "",
   };
+  console.log(requestBody);
   // Throw everything at power automate
 }
 

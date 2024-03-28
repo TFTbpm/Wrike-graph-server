@@ -256,7 +256,6 @@ async function getComments(taskId, access_token) {
   taskId = `/${taskId}` || "";
   try {
     let URI = `https://www.wrike.com/api/v4/tasks${taskId}/comments/`;
-    console.log(URI);
     const response = await fetch(URI, {
       headers: {
         Authorization: `Bearer ${access_token}`,
