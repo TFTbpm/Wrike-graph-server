@@ -331,9 +331,17 @@ app.post("/wrike/rfq/completed", async (req, res) => {
     console.error(`there was an issue accessing Mongo: ${error}`);
   }
 
-  req.body.forEach((hook) => {
+  req.body.forEach(async (hook) => {
     if (hook.status === "Completed") {
-      createRFQEntry(hook, users, process.env.wrike_perm_access_token);
+      createRFQEntry(hook, users, process.env.wrike_perm_access_token).then(
+        (creationStatus) => {
+          if (creationStatus) {
+            res.status(200).send().end();
+          } else {
+            res.status(202).send().end();
+          }
+        }
+      );
     }
   });
 });

@@ -18,7 +18,6 @@ async function getAttachments(taskID, accessToken) {
       const attachmentArr = await Promise.all(
         data.data.map(async (attachment) => {
           const buffer = await downloadAttachment(attachment.id, accessToken);
-          console.log(buffer);
           return {
             name: attachment.name,
             data: buffer,

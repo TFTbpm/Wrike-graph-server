@@ -342,9 +342,15 @@ async function createRFQEntry(hook, users, accessToken) {
     })
   );
 
-  wrikeData = Buffer.from(wrikeData + wrikeComments);
+  wrikeData = {
+    name: "wrike_data.txt",
+    data: Buffer.from(wrikeData + wrikeComments).toString("base64"),
+  };
 
   let attachmentData = await getAttachments(hook.taskId, accessToken);
+  attachmentData = attachmentData.map((att) => {
+    return { name: att.name, attData: att.data.toString("base64") };
+  });
 
   const requestBody = {
     title: taskData.title || "",
@@ -360,7 +366,22 @@ async function createRFQEntry(hook, users, accessToken) {
     wrikeData: wrikeData || "",
     attachments: attachmentData || "",
   };
-  console.log(requestBody);
+  // console.log(requestBody);
+  try {
+    await fetch(process.env.graph_power_automate_new_rfq, {
+      method: "POST",
+      body: JSON.stringify(requestBody),
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+    console.log("sent rfq to folder");
+    return true;
+  } catch (error) {
+    console.error(
+      `there was an error handing off the new RFQ data to power automate: ${error} \n ${error.stack}`
+    );
+  }
   // Throw everything at power automate
 }
 
