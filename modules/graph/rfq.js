@@ -338,7 +338,7 @@ async function createRFQEntry(hook, users, accessToken) {
   await Promise.all(
     taskComments.data.map(async (comment) => {
       let user = await users.findOne({ wrikeUser: comment.authorId });
-      wrikeComments += `${user} [${comment.createdDate}] - ${comment.text}\n`;
+      wrikeComments += `${user.name} [${comment.createdDate}] - ${comment.text}\n`;
     })
   );
 
