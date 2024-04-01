@@ -332,6 +332,7 @@ app.post("/wrike/rfq/completed", async (req, res) => {
   }
 
   req.body.forEach(async (hook) => {
+    console.log(hook);
     if (hook.status === "Completed") {
       createRFQEntry(hook, users, process.env.wrike_perm_access_token).then(
         (creationStatus) => {
