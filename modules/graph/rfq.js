@@ -1,3 +1,6 @@
+const getAttachments = require("../wrike/getAttachments");
+const { getTasks, getComments } = require("../wrike/task");
+
 async function getRFQData(site_id, list_id, access_token, numRefresh) {
   const startTime = performance.now();
   const url = `https://graph.microsoft.com/v1.0/sites/${site_id}/lists/${list_id}/items?expand=fields&$top=999&$skiptoken=UGFnZWQ9VFJVRSZwX0lEPTQ1MzY`;
@@ -313,8 +316,78 @@ async function modifyCustomFieldFromWrike(hooks, collection, users, folder) {
   }
 }
 
+async function createRFQEntry(hook, users, accessToken) {
+  // use the info from the hook, get all information associated with that task
+  let taskData = await getTasks(hook.taskId, accessToken);
+  taskData = taskData.data[0];
+  const taskComments = await getComments(hook.taskId, accessToken);
+
+  // const attachmentArr = await Promise.all(
+  //   attachmentIdArr.map(async (attachmentId) => {
+  //     return await downloadAttachment(attachmentId, accessToken);
+  //   })
+  let assigned = await Promise.all(
+    taskData.responsibleIds.map(async (responsible) => {
+      let user = await users.findOne({ wrikeUser: responsible });
+      return await user.graphId;
+    })
+  );
+
+  let wrikeData = `Title:\n${taskData.title}\n\nDescription:\n${taskData.description}\n\nComments: \n`;
+  let wrikeComments = "";
+  Promise.all(
+    taskComments.data.map(async (comment) => {
+      let user = await users.findOne({ wrikeUser: comment.authorId });
+      wrikeComments += `${user} [${comment.createdDate}] - ${comment.text}\n`;
+    })
+  );
+
+  wrikeData = {
+    name: "wrike_data.txt",
+    data: Buffer.from(wrikeData + wrikeComments).toString("base64"),
+  };
+
+  let attachmentData = await getAttachments(hook.taskId, accessToken);
+  attachmentData = attachmentData.map((att) => {
+    return { name: att.name, attData: att.data.toString("base64") };
+  });
+
+  const requestBody = {
+    title: taskData.title || "",
+    description: taskData.description || "",
+    completedDate: hook.lastUpdatedDate || "",
+    assigned: assigned || "",
+    customer:
+      taskData.customFields.find((field) => field.id === "IEAF5SOTJUAFB2KU")
+        ?.value || "",
+    type:
+      taskData.customFields.find((field) => field.id === "IEAF5SOTJUAFTWBJ")
+        ?.value || "",
+    wrikeData: wrikeData || "",
+    attachments: attachmentData || "",
+  };
+  // console.log(requestBody);
+  try {
+    await fetch(process.env.graph_power_automate_new_rfq, {
+      method: "POST",
+      body: JSON.stringify(requestBody),
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+    console.log("sent rfq to folder");
+    return true;
+  } catch (error) {
+    console.error(
+      `there was an error handing off the new RFQ data to power automate: ${error} \n ${error.stack}`
+    );
+  }
+  // Throw everything at power automate
+}
+
 module.exports = {
   getRFQData,
   modifyUserFromWrike,
   modifyCustomFieldFromWrike,
+  createRFQEntry,
 };

@@ -13,10 +13,11 @@ const {
   getRFQData,
   modifyUserFromWrike,
   modifyCustomFieldFromWrike,
+  createRFQEntry,
 } = require("./modules/graph/rfq");
 const getDatasheets = require("./modules/graph/datasheet");
 const { getOrders, addOrder } = require("./modules/graph/order");
-const getOrderAttachment = require("./modules/wrike/getOrderAttachment");
+const getAttachments = require("./modules/wrike/getAttachments");
 const { MongoClient } = require("mongodb");
 const {
   mapWrikeUsersToGraphIDs,
@@ -319,17 +320,43 @@ app.post("/wrike/rfq/reviewer", addAPIIdToReq, async (req, res) => {
   res.status(202).send();
 });
 
+app.post("/wrike/rfq/completed", async (req, res) => {
+  let users;
+
+  try {
+    const client = new MongoClient(process.env.mongoURL);
+    const db = client.db(process.env.mongoDB);
+    users = db.collection(process.env.mongoUserColection);
+  } catch (error) {
+    console.error(`there was an issue accessing Mongo: ${error}`);
+  }
+
+  req.body.forEach(async (hook) => {
+    if (hook.status === "Completed") {
+      createRFQEntry(hook, users, process.env.wrike_perm_access_token).then(
+        (creationStatus) => {
+          if (creationStatus) {
+            res.status(200).send().end();
+          } else {
+            res.status(202).send().end();
+          }
+        }
+      );
+    }
+  });
+});
+
 app.post("/wrike/order", async (req, res) => {
   let start = performance.now();
   // console.log(req.body);
   if (req.body[0].status == "Completed") {
     console.log("this status is complete");
     // get attachment
-    const data = await getOrderAttachment(
+    const data = await getAttachments(
       req.body[0].taskId,
       process.env.wrike_perm_access_token
     );
-    const bufferString = data.attachment.toString("base64");
+    const bufferString = data.attachment[0].data.toString("base64");
     const fileHash = crypto
       .createHash("sha256")
       .update(data.data[0].name)
@@ -463,6 +490,60 @@ app.post("/wrike/rfq/delete", async (req, res) => {
     );
   }
   res.status(202).send();
+});
+
+app.post("/wrike/rfq/status", addAPIIdToReq, async (req, res) => {
+  const { taskId, newCustomStatusId } = req.body;
+
+  const newStatus = rfqCustomStatuses.find(
+    (status) => status.id === newCustomStatusId
+  )?.name;
+
+  if (!newStatus) {
+    return res.status(202).send("Status not found.");
+  }
+
+  let client;
+
+  try {
+    client = new MongoClient(process.env.mongoURL);
+
+    await client.connect();
+    const db = client.db(process.env.mongoDB);
+    const rfqs = db.collection(process.env.mongoRFQCollection);
+    const rfq = await rfqs.findOne({ id: taskId });
+
+    if (!rfq) {
+      return res.status(202).send("RFQ not found.");
+    }
+
+    fetch(process.env.graph_power_automate_uri, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        resource: "RFQ",
+        id: rfq.graphID,
+        data: newStatus,
+        type: "CHANGE",
+        name: "null",
+        field: "status",
+      }),
+    }).catch((error) => {
+      console.error("Error sending request to Graph Power Automate:", error);
+    });
+
+    res.status(202).send("Request to update RFQ status sent.");
+  } catch (error) {
+    console.error("Error updating RFQ status:", error);
+
+    res.status(202).send("Failed to update RFQ status.");
+  } finally {
+    if (client) {
+      await client.close();
+    }
+  }
 });
 
 app.post("/wrike/order/delete", async (req, res) => {
@@ -967,7 +1048,7 @@ schedule("0 12 * * *", async () => {
   // Schedule refreshes every day at 6 AM
   try {
     console.log("6am refresh...");
-    refreshRFQs(75);
+    await refreshRFQs(50);
     console.log("complete");
   } catch (error) {
     console.error(error); // Log any errors
