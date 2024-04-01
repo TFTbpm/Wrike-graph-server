@@ -321,6 +321,7 @@ app.post("/wrike/rfq/reviewer", addAPIIdToReq, async (req, res) => {
 });
 
 app.post("/wrike/rfq/completed", async (req, res) => {
+  console.log(`recieved rfq status hook: \n ${req.body}`);
   let users;
 
   try {
