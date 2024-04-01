@@ -321,7 +321,6 @@ app.post("/wrike/rfq/reviewer", addAPIIdToReq, async (req, res) => {
 });
 
 app.post("/wrike/rfq/completed", async (req, res) => {
-  console.log(`recieved rfq status hook: \n ${req.body}`);
   let users;
 
   try {
@@ -333,7 +332,6 @@ app.post("/wrike/rfq/completed", async (req, res) => {
   }
 
   req.body.forEach(async (hook) => {
-    console.log(hook);
     if (hook.status === "Completed") {
       createRFQEntry(hook, users, process.env.wrike_perm_access_token).then(
         (creationStatus) => {
@@ -346,6 +344,7 @@ app.post("/wrike/rfq/completed", async (req, res) => {
       );
     } else {
       res.status(200).send().end();
+    }
   });
 });
 
