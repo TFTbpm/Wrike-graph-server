@@ -342,6 +342,8 @@ app.post("/wrike/rfq/completed", async (req, res) => {
           }
         }
       );
+    } else {
+      res.status(200).send().end();
     }
   });
 });
