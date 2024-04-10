@@ -322,14 +322,10 @@ async function createRFQEntry(hook, users, accessToken) {
   taskData = taskData.data[0];
   const taskComments = await getComments(hook.taskId, accessToken);
 
-  // const attachmentArr = await Promise.all(
-  //   attachmentIdArr.map(async (attachmentId) => {
-  //     return await downloadAttachment(attachmentId, accessToken);
-  //   })
   let assigned = await Promise.all(
     taskData.responsibleIds.map(async (responsible) => {
       let user = await users.findOne({ wrikeUser: responsible });
-      return await user.graphId;
+      return await user.name;
     })
   );
 
@@ -366,7 +362,7 @@ async function createRFQEntry(hook, users, accessToken) {
     wrikeData: wrikeData || "",
     attachments: attachmentData || "",
   };
-  // console.log(requestBody);
+
   try {
     await fetch(process.env.graph_power_automate_new_rfq, {
       method: "POST",
@@ -382,7 +378,6 @@ async function createRFQEntry(hook, users, accessToken) {
       `there was an error handing off the new RFQ data to power automate: ${error} \n ${error.stack}`
     );
   }
-  // Throw everything at power automate
 }
 
 module.exports = {

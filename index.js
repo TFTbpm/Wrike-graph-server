@@ -329,21 +329,34 @@ app.post("/wrike/rfq/completed", async (req, res) => {
     users = db.collection(process.env.mongoUserColection);
   } catch (error) {
     console.error(`there was an issue accessing Mongo: ${error}`);
+    await client.close();
+    res.status(202).send().end();
   }
 
   req.body.forEach(async (hook) => {
-    if (hook.status === "Completed") {
-      createRFQEntry(hook, users, process.env.wrike_perm_access_token).then(
-        (creationStatus) => {
-          if (creationStatus) {
-            res.status(200).send().end();
-          } else {
-            res.status(202).send().end();
+    try {
+      if (hook.status === "Completed") {
+        createRFQEntry(hook, users, process.env.wrike_perm_access_token).then(
+          async (creationStatus) => {
+            if (creationStatus) {
+              await client.close();
+              res.status(200).send().end();
+            } else {
+              await client.close();
+              res.status(202).send().end();
+            }
           }
-        }
+        );
+      } else {
+        await client.close();
+        res.status(200).send().end();
+      }
+    } catch (error) {
+      console.error(
+        `there was an error iterating over rfq hooks: ${error} \n ${error.stack}`
       );
-    } else {
-      res.status(200).send().end();
+      res.status(202).send().end();
+      await client.close();
     }
   });
 });
