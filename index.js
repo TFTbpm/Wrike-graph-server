@@ -339,10 +339,8 @@ app.post("/wrike/rfq/completed", async (req, res) => {
         createRFQEntry(hook, users, process.env.wrike_perm_access_token).then(
           async (creationStatus) => {
             if (creationStatus) {
-              await client.close();
               res.status(200).send().end();
             } else {
-              await client.close();
               res.status(202).send().end();
             }
           }
