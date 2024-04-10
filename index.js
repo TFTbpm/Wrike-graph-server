@@ -354,7 +354,6 @@ app.post("/wrike/rfq/completed", async (req, res) => {
         `there was an error iterating over rfq hooks: ${error} \n ${error.stack}`
       );
       res.status(202).send().end();
-      await client.close();
     }
   });
 });
