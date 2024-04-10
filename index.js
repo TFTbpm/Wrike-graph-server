@@ -346,7 +346,6 @@ app.post("/wrike/rfq/completed", async (req, res) => {
           }
         );
       } else {
-        await client.close();
         res.status(200).send().end();
       }
     } catch (error) {
