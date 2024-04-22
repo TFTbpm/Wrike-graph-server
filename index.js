@@ -368,7 +368,7 @@ app.post("/wrike/order", async (req, res) => {
       req.body[0].taskId,
       process.env.wrike_perm_access_token
     );
-    const bufferString = data.attachment[0].data.toString("base64");
+    const bufferString = data[0].data.toString("base64");
     const fileHash = crypto
       .createHash("sha256")
       .update(data.data[0].name)
@@ -841,8 +841,7 @@ app.post("/graph/order", async (req, res) => {
       let author = await users.findOne({
         graphId: order.fields.AuthorLookupId,
       });
-      // ! with the time limit on vercel, there's no other way to know whether it was created by the API or not
-      if (order.createdBy.user.displayName == "System") {
+      if (order.createdBy?.user.displayName == "System") {
         console.log("this was created from a Wrike item");
 
         // TODO: add a salt here
@@ -862,7 +861,7 @@ app.post("/graph/order", async (req, res) => {
       <br> PO number: ${order.fields.PONumber || "none"} 
       <br> SO number: ${order.fields.SONumber || "none"}
       <br> Customer: ${order.fields.CustomerName || "none"}
-      <br> Author: ${author}`;
+      <br> Author: ${author.name}`;
       // console.log(desc);
 
       return {
@@ -900,7 +899,6 @@ app.post("/graph/order", async (req, res) => {
         console.error(
           `there was an issue processing RFQs (in route /graph/rfq): ${e} \n ${e.stack}`
         );
-        return false;
       }
     });
 
@@ -908,9 +906,15 @@ app.post("/graph/order", async (req, res) => {
   } catch (e) {
     console.log(`error mapping orders: ${e}`);
   } finally {
-    if (client) {
-      console.log(`closing client...`);
-      await client.close();
+    try {
+      if (client) {
+        console.log(`closing client...`);
+        await client.close();
+      }
+    } catch (error) {
+      console.error(
+        `unable to close client connection: ${error} \n ${error.stack}`
+      );
     }
   }
   res.status(200).send("good");
