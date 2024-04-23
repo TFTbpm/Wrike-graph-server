@@ -94,7 +94,7 @@ async function modifyUserFromWrike(hooks, dataCollection, users, resource) {
           body = JSON.stringify({
             resource: resource,
             data: `${foundKey.graphId}`,
-            id: parseInt(mongoEntry.graphID),
+            id: parseInt(mongoEntry?.id),
             type: "ADD",
             name: "null",
             field: "AssignedId",
