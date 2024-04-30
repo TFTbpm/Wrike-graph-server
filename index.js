@@ -26,6 +26,7 @@ const {
 } = require("./modules/Sync");
 const { schedule } = require("node-cron");
 const fs = require("fs");
+const { createMarketingArchiveEntry } = require("./modules/graph/marketing");
 
 // dotenv config
 config();
@@ -598,6 +599,54 @@ app.post("/wrike/order/delete", async (req, res) => {
   res.status(202).send();
 });
 
+app.post("/wrike/corporate_communication/completed", async (req, res) => {
+  let users;
+
+  try {
+    const client = new MongoClient(process.env.mongoURL);
+    const db = client.db(process.env.mongoDB);
+    users = db.collection(process.env.mongoUserColection);
+  } catch (error) {
+    console.error(`there was an issue accessing Mongo: ${error}`);
+    await client.close();
+    res.status(202).send().end();
+  }
+
+  req.body.forEach(async (hook) => {
+    try {
+      if (hook.status === "Completed") {
+        createMarketingArchiveEntry(
+          hook,
+          users,
+          process.env.wrike_perm_access_token
+        ).then(async (creationStatus) => {
+          if (creationStatus) {
+            res.status(200).send().end();
+          } else {
+            res.status(202).send().end();
+          }
+        });
+      } else {
+        res.status(200).send().end();
+      }
+    } catch (error) {
+      console.error(
+        `there was an error iterating over rfq hooks: ${error} \n ${error.stack}`
+      );
+      res.status(202).send().end();
+      await client.close();
+    }
+  });
+});
+
+app.post("/wrike/digital_assets/completed", async (req, res) => {});
+
+app.post("/wrike/online_networking/completed", async (req, res) => {});
+
+app.post("/wrike/promotional_material/completed", async (req, res) => {});
+
+app.post("/wrike/sales/completed", async (req, res) => {});
+
 // ! This route will be used to clean up untracked RFQ's. Only trigger manually.
 app.post("/rfq/sync", async (req, res) => {
   try {
@@ -1059,17 +1108,6 @@ async function refreshRFQs(numRefresh) {
   }
   return true;
 }
-
-schedule("0 12 * * *", async () => {
-  // Schedule refreshes every day at 6 AM
-  try {
-    console.log("6am refresh...");
-    await refreshRFQs(50);
-    console.log("complete");
-  } catch (error) {
-    console.error(error); // Log any errors
-  }
-});
 
 app.listen();
 
