@@ -66,6 +66,10 @@ const rfqCustomStatuses = [
     id: "IEAF5SOTJMEAG235",
     name: "Deleted",
   },
+  {
+    id: "IEAF5SOTJMEUPDNZ",
+    name: "Requires Import",
+  },
 ];
 const dsCustomStatuses = [
   {
@@ -520,8 +524,6 @@ app.post("/wrike/rfq/status", addAPIIdToReq, async (req, res) => {
 
   try {
     client = new MongoClient(process.env.mongoURL);
-
-    await client.connect();
     const db = client.db(process.env.mongoDB);
     const rfqs = db.collection(process.env.mongoRFQCollection);
     const rfq = await rfqs.findOne({ id: taskId });
@@ -777,7 +779,6 @@ app.post("/graph/datasheets", async (req, res) => {
 
   try {
     client = new MongoClient(process.env.mongoURL);
-    await client.connect();
     const db = client.db(process.env.mongoDB);
     wrikeTitles = db.collection(process.env.mongoDatasheetCollection);
     users = db.collection(process.env.mongoUserColection);
@@ -874,7 +875,6 @@ app.post("/graph/order", async (req, res) => {
 
   try {
     client = new MongoClient(process.env.mongoURL);
-    await client.connect();
     const db = client.db(process.env.mongoDB);
     wrikeTitles = db.collection(process.env.mongoOrderCollection);
     users = db.collection(process.env.mongoUserColection);
@@ -985,7 +985,6 @@ async function refreshRFQs(numRefresh) {
 
   try {
     client = new MongoClient(process.env.mongoURL);
-    await client.connect();
     const db = client.db(process.env.mongoDB);
     wrikeTitles = db.collection(process.env.mongoRFQCollection);
     users = db.collection(process.env.mongoUserColection);
