@@ -617,10 +617,11 @@ app.post("/wrike/corporate_communication/completed", async (req, res) => {
   req.body.forEach(async (hook) => {
     try {
       if (hook.status === "Completed") {
-        createMarketingArchiveEntry(
+        await createMarketingArchiveEntry(
           hook,
           users,
-          process.env.wrike_perm_access_token
+          process.env.wrike_perm_access_token,
+          "Corporate Communication"
         ).then(async (creationStatus) => {
           if (creationStatus) {
             res.status(200).send().end();
