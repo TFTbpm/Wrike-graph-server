@@ -642,13 +642,169 @@ app.post("/wrike/corporate_communication/completed", async (req, res) => {
   });
 });
 
-app.post("/wrike/digital_assets/completed", async (req, res) => {});
+app.post("/wrike/digital_assets/completed", async (req, res) => {
+  let users;
 
-app.post("/wrike/online_networking/completed", async (req, res) => {});
+  try {
+    const client = new MongoClient(process.env.mongoURL);
+    const db = client.db(process.env.mongoDB);
+    users = db.collection(process.env.mongoUserColection);
+  } catch (error) {
+    console.error(`there was an issue accessing Mongo: ${error}`);
+    await client.close();
+    res.status(202).send().end();
+  }
 
-app.post("/wrike/promotional_material/completed", async (req, res) => {});
+  req.body.forEach(async (hook) => {
+    try {
+      if (hook.status === "Completed") {
+        await createMarketingArchiveEntry(
+          hook,
+          users,
+          process.env.wrike_perm_access_token,
+          "Digital Assets"
+        ).then(async (creationStatus) => {
+          if (creationStatus) {
+            res.status(200).send().end();
+          } else {
+            res.status(202).send().end();
+          }
+        });
+      } else {
+        res.status(200).send().end();
+      }
+    } catch (error) {
+      console.error(
+        `there was an error iterating over rfq hooks: ${error} \n ${error.stack}`
+      );
+      res.status(202).send().end();
+      await client.close();
+    }
+  });
+});
 
-app.post("/wrike/sales/completed", async (req, res) => {});
+app.post("/wrike/online_networking/completed", async (req, res) => {
+  let users;
+
+  try {
+    const client = new MongoClient(process.env.mongoURL);
+    const db = client.db(process.env.mongoDB);
+    users = db.collection(process.env.mongoUserColection);
+  } catch (error) {
+    console.error(`there was an issue accessing Mongo: ${error}`);
+    await client.close();
+    res.status(202).send().end();
+  }
+
+  req.body.forEach(async (hook) => {
+    try {
+      if (hook.status === "Completed") {
+        await createMarketingArchiveEntry(
+          hook,
+          users,
+          process.env.wrike_perm_access_token,
+          "Online Networking"
+        ).then(async (creationStatus) => {
+          if (creationStatus) {
+            res.status(200).send().end();
+          } else {
+            res.status(202).send().end();
+          }
+        });
+      } else {
+        res.status(200).send().end();
+      }
+    } catch (error) {
+      console.error(
+        `there was an error iterating over rfq hooks: ${error} \n ${error.stack}`
+      );
+      res.status(202).send().end();
+      await client.close();
+    }
+  });
+});
+
+app.post("/wrike/promotional_material/completed", async (req, res) => {
+  let users;
+
+  try {
+    const client = new MongoClient(process.env.mongoURL);
+    const db = client.db(process.env.mongoDB);
+    users = db.collection(process.env.mongoUserColection);
+  } catch (error) {
+    console.error(`there was an issue accessing Mongo: ${error}`);
+    await client.close();
+    res.status(202).send().end();
+  }
+
+  req.body.forEach(async (hook) => {
+    try {
+      if (hook.status === "Completed") {
+        await createMarketingArchiveEntry(
+          hook,
+          users,
+          process.env.wrike_perm_access_token,
+          "Promotional Material"
+        ).then(async (creationStatus) => {
+          if (creationStatus) {
+            res.status(200).send().end();
+          } else {
+            res.status(202).send().end();
+          }
+        });
+      } else {
+        res.status(200).send().end();
+      }
+    } catch (error) {
+      console.error(
+        `there was an error iterating over rfq hooks: ${error} \n ${error.stack}`
+      );
+      res.status(202).send().end();
+      await client.close();
+    }
+  });
+});
+
+app.post("/wrike/sales/completed", async (req, res) => {
+  let users;
+
+  try {
+    const client = new MongoClient(process.env.mongoURL);
+    const db = client.db(process.env.mongoDB);
+    users = db.collection(process.env.mongoUserColection);
+  } catch (error) {
+    console.error(`there was an issue accessing Mongo: ${error}`);
+    await client.close();
+    res.status(202).send().end();
+  }
+
+  req.body.forEach(async (hook) => {
+    try {
+      if (hook.status === "Completed") {
+        await createMarketingArchiveEntry(
+          hook,
+          users,
+          process.env.wrike_perm_access_token,
+          "Sales"
+        ).then(async (creationStatus) => {
+          if (creationStatus) {
+            res.status(200).send().end();
+          } else {
+            res.status(202).send().end();
+          }
+        });
+      } else {
+        res.status(200).send().end();
+      }
+    } catch (error) {
+      console.error(
+        `there was an error iterating over rfq hooks: ${error} \n ${error.stack}`
+      );
+      res.status(202).send().end();
+      await client.close();
+    }
+  });
+});
 
 // ! This route will be used to clean up untracked RFQ's. Only trigger manually.
 app.post("/rfq/sync", async (req, res) => {
