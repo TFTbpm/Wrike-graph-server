@@ -1179,7 +1179,32 @@ app.post("/wrike/fix_assignee", async (req, res) => {
         }
       }
 
-      if (
+      if (task.removedResponsibles) {
+        console.log("removal");
+        await modifyTask(
+          task.taskId,
+          process.env.wrike_folder_orders,
+          process.env.wrike_perm_access_token,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          [
+            {
+              id: "IEAF5SOTJUAGAA33",
+              value: taskData.responsibleIds.join(","),
+            },
+          ],
+          null,
+          null,
+          null,
+          null
+        );
+      } else if (
         task.addedResponsibles.includes("KUAQ65OT") ||
         task.addedResponsibles.length === 0
       ) {
@@ -1206,7 +1231,7 @@ app.post("/wrike/fix_assignee", async (req, res) => {
       } else if (taskData.responsibleIds) {
         console.log("task was assigned");
         // if assigned to someone who isn't system, move all assignees to the custom field
-        let t = await modifyTask(
+        await modifyTask(
           task.taskId,
           process.env.wrike_folder_orders,
           process.env.wrike_perm_access_token,
