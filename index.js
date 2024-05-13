@@ -1155,7 +1155,7 @@ app.post("/wrike/fix_assignee", async (req, res) => {
       const URI = `https://www.wrike.com/api/v4/tasks/${task.taskId}`;
       const requestOptions = {
         headers: {
-          Authorization: `Bearer ${accessToken}`,
+          Authorization: `Bearer ${process.env.wrike_perm_access_token}`,
         },
       };
       const taskResponse = await fetch(URI, requestOptions);
