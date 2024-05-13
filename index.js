@@ -366,59 +366,65 @@ app.post("/wrike/rfq/completed", async (req, res) => {
 app.post("/wrike/order", async (req, res) => {
   let start = performance.now();
   // console.log(req.body);
-  if (req.body[0].status == "Completed") {
-    console.log("this status is complete");
-    // get attachment
-    const data = await getAttachments(
-      req.body[0].taskId,
-      process.env.wrike_perm_access_token
-    );
-    const bufferString = data[0].data.toString("base64");
-    const fileHash = crypto
-      .createHash("sha256")
-      .update(data.data[0].name)
-      .digest("hex");
+  try {
+    if (req.body[0].status == "Completed") {
+      console.log("this status is complete");
+      // get attachment
+      const data = await getAttachments(
+        req.body[0].taskId,
+        process.env.wrike_perm_access_token
+      );
+      const bufferString = data[0].data.toString("base64");
+      const fileHash = crypto
+        .createHash("sha256")
+        .update(data[0].name)
+        .digest("hex");
 
-    // TODO: add a filter here which checks if the wrike ID
+      let orderResult;
+      let client;
 
-    let orderResult;
-    let client;
-
-    try {
-      client = new MongoClient(process.env.mongoURL);
-      const db = client.db(process.env.mongoDB);
-      const ordersCollection = db.collection(process.env.mongoOrderCollection);
-      const currentOrder = await ordersCollection.findOne({
-        content: fileHash,
-      });
-      if (!currentOrder) {
-        await ordersCollection.insertOne({
+      try {
+        client = new MongoClient(process.env.mongoURL);
+        const db = client.db(process.env.mongoDB);
+        const ordersCollection = db.collection(
+          process.env.mongoOrderCollection
+        );
+        const currentOrder = await ordersCollection.findOne({
+          content: fileHash,
+        });
+        if (!currentOrder) {
+          await ordersCollection.insertOne({
+            id: req.body[0].taskId,
+            content: fileHash,
+          });
+        }
+        console.log({
           id: req.body[0].taskId,
           content: fileHash,
         });
+        orderResult = await addOrder(
+          bufferString,
+          data.data[0].name,
+          process.env.graph_power_automate_uri
+        );
+      } catch (error) {
+        console.error(
+          `there was an issue connecting to the mongoclient to upload hash and id: ${error}`
+        );
+      } finally {
+        if (client) {
+          await client.close();
+        }
       }
-      console.log({
-        id: req.body[0].taskId,
-        content: fileHash,
-      });
-      orderResult = await addOrder(
-        bufferString,
-        data.data[0].name,
-        process.env.graph_power_automate_uri
-      );
-    } catch (error) {
-      console.error(
-        `there was an issue connecting to the mongoclient to upload hash and id: ${error}`
-      );
-    } finally {
-      if (client) {
-        await client.close();
-      }
-    }
 
-    // ? What if there's more than 2
-    let end = performance.now();
-    console.log(`time taken: ${(end - start) / 1000}s`);
+      // ? What if there's more than 2
+      let end = performance.now();
+      console.log(`time taken: ${(end - start) / 1000}s`);
+    }
+  } catch (error) {
+    console.log(
+      `there was an issue on /wrike/order ${error} \n ${error.stack}`
+    );
   }
   res.status(202).send();
 });
