@@ -411,9 +411,11 @@ app.post("/wrike/order", async (req, res) => {
         console.error(
           `there was an issue connecting to the mongoclient to upload hash and id: ${error}`
         );
+        res.status(202).send();
       } finally {
         if (client) {
           await client.close();
+          res.status(202).send();
         }
       }
 
@@ -425,6 +427,7 @@ app.post("/wrike/order", async (req, res) => {
     console.log(
       `there was an issue on /wrike/order ${error} \n ${error.stack}`
     );
+    res.status(202).send();
   }
   res.status(202).send();
 });
