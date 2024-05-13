@@ -23,7 +23,6 @@ async function getOrders(site_id, list_id, access_token, skipToken) {
     if (nextUrl) {
       try {
         response = await fetch(nextUrl, requestOptions);
-        response = await fetch(testLink, requestOptions);
       } catch (error) {
         console.error(
           `there was an error fetching the next orders page: \n ${error}`

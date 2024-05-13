@@ -6,6 +6,7 @@ const {
   processRFQ,
   processDataSheet,
   processOrder,
+  modifyTask,
 } = require("./modules/wrike/task");
 const graphAccessData = require("./modules/graph/accessToken");
 const rateLimit = require("express-rate-limit");
@@ -366,59 +367,68 @@ app.post("/wrike/rfq/completed", async (req, res) => {
 app.post("/wrike/order", async (req, res) => {
   let start = performance.now();
   // console.log(req.body);
-  if (req.body[0].status == "Completed") {
-    console.log("this status is complete");
-    // get attachment
-    const data = await getAttachments(
-      req.body[0].taskId,
-      process.env.wrike_perm_access_token
-    );
-    const bufferString = data[0].data.toString("base64");
-    const fileHash = crypto
-      .createHash("sha256")
-      .update(data.data[0].name)
-      .digest("hex");
+  try {
+    if (req.body[0].status == "Completed") {
+      console.log("this status is complete");
+      // get attachment
+      const data = await getAttachments(
+        req.body[0].taskId,
+        process.env.wrike_perm_access_token
+      );
+      const bufferString = data[0].data.toString("base64");
+      const fileHash = crypto
+        .createHash("sha256")
+        .update(data[0].name)
+        .digest("hex");
 
-    // TODO: add a filter here which checks if the wrike ID
+      let orderResult;
+      let client;
 
-    let orderResult;
-    let client;
-
-    try {
-      client = new MongoClient(process.env.mongoURL);
-      const db = client.db(process.env.mongoDB);
-      const ordersCollection = db.collection(process.env.mongoOrderCollection);
-      const currentOrder = await ordersCollection.findOne({
-        content: fileHash,
-      });
-      if (!currentOrder) {
-        await ordersCollection.insertOne({
+      try {
+        client = new MongoClient(process.env.mongoURL);
+        const db = client.db(process.env.mongoDB);
+        const ordersCollection = db.collection(
+          process.env.mongoOrderCollection
+        );
+        const currentOrder = await ordersCollection.findOne({
+          content: fileHash,
+        });
+        if (!currentOrder) {
+          await ordersCollection.insertOne({
+            id: req.body[0].taskId,
+            content: fileHash,
+          });
+        }
+        console.log({
           id: req.body[0].taskId,
           content: fileHash,
         });
+        orderResult = await addOrder(
+          bufferString,
+          data.data[0].name,
+          process.env.graph_power_automate_uri
+        );
+      } catch (error) {
+        console.error(
+          `there was an issue connecting to the mongoclient to upload hash and id: ${error}`
+        );
+        res.status(202).send();
+      } finally {
+        if (client) {
+          await client.close();
+          res.status(202).send();
+        }
       }
-      console.log({
-        id: req.body[0].taskId,
-        content: fileHash,
-      });
-      orderResult = await addOrder(
-        bufferString,
-        data.data[0].name,
-        process.env.graph_power_automate_uri
-      );
-    } catch (error) {
-      console.error(
-        `there was an issue connecting to the mongoclient to upload hash and id: ${error}`
-      );
-    } finally {
-      if (client) {
-        await client.close();
-      }
-    }
 
-    // ? What if there's more than 2
-    let end = performance.now();
-    console.log(`time taken: ${(end - start) / 1000}s`);
+      // ? What if there's more than 2
+      let end = performance.now();
+      console.log(`time taken: ${(end - start) / 1000}s`);
+    }
+  } catch (error) {
+    console.log(
+      `there was an issue on /wrike/order ${error} \n ${error.stack}`
+    );
+    res.status(202).send();
   }
   res.status(202).send();
 });
@@ -1033,7 +1043,7 @@ app.post("/graph/order", async (req, res) => {
   try {
     client = new MongoClient(process.env.mongoURL);
     const db = client.db(process.env.mongoDB);
-    wrikeTitles = db.collection(process.env.mongoOrderCollection);
+    ordersCollection = db.collection(process.env.mongoOrderCollection);
     users = db.collection(process.env.mongoUserColection);
   } catch (error) {
     console.error(
@@ -1048,20 +1058,29 @@ app.post("/graph/order", async (req, res) => {
         graphId: order.fields.AuthorLookupId,
       });
       if (order.createdBy?.user.displayName == "System") {
+        // If it was created from a wrike item it was already put into the db
         console.log("this was created from a Wrike item");
+        return;
+      }
 
-        // TODO: add a salt here
-        const fileHash = crypto
-          .createHash("sha256")
-          .update(order.fields.FileLeafRef)
-          .digest("hex");
+      // Check if the order already exists in the database
+      const fileHash = crypto
+        .createHash("sha256")
+        .update(order.fields.FileLeafRef)
+        .digest("hex");
+
+      const currentOrder = await ordersCollection.findOne({
+        content: fileHash,
+      });
+      // If the order exists in database, update with the file hash and return nothing
+      if (currentOrder) {
         // Get mongo entry for given resource id
-        wrikeTitles.findOneAndUpdate(
+        ordersCollection.findOneAndUpdate(
           { content: fileHash },
           { $set: { graphID: order.id, salt: "null", iterations: 0 } }
         );
+        return;
       }
-
       const desc = `URL: ${order.fields._dlc_DocIdUrl.Url || "none"} 
       <br> Entered date: ${order.createdDateTime} 
       <br> PO number: ${order.fields.PONumber || "none"} 
@@ -1098,12 +1117,13 @@ app.post("/graph/order", async (req, res) => {
   }
 
   try {
-    const processPromises = currentHistory.map(async (rfq) => {
+    const processPromises = currentHistory.map(async (order) => {
+      console.log(order);
       try {
-        return await processOrder(rfq, wrikeTitles);
+        return await processOrder(order, ordersCollection);
       } catch (e) {
         console.error(
-          `there was an issue processing RFQs (in route /graph/rfq): ${e} \n ${e.stack}`
+          `there was an issue processing orders (in route /graph/order): ${e} \n ${e.stack}`
         );
       }
     });
@@ -1124,6 +1144,89 @@ app.post("/graph/order", async (req, res) => {
     }
   }
   res.status(200).send("good");
+});
+
+app.post("wrike/fix_assignee", async (req, res) => {
+  try {
+    console.log(JSON.stringify(req.body));
+    for (let task of req.body) {
+      let users;
+
+      const URI = `https://www.wrike.com/api/v4/tasks/${task.taskId}`;
+      const requestOptions = {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      };
+      const taskResponse = await fetch(URI, requestOptions);
+
+      if (!taskResponse.ok) {
+        console.error(
+          `there was an error in the fix assignee route ${await taskResponse.text()}`
+        );
+        return;
+      }
+
+      let taskData = await taskResponse.json();
+      taskData = taskData.data;
+
+      for (let customField of taskData.customFields) {
+        if (customField.id == "IEAF5SOTJUAGAA33") {
+          users = customField.value.split(",");
+        }
+      }
+
+      if (
+        task.addedResponsibles.includes("KUAQ65OT") ||
+        task.addedResponsibles.length === 0
+      ) {
+        // if assigned to system, then remove system and add in the user custom field
+        await modifyTask(
+          task.id,
+          process.env.wrike_folder_orders,
+          process.env.wrike_perm_access_token,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          users,
+          null,
+          null,
+          null,
+          null,
+          ["KUAQ65OT"],
+          null
+        );
+      } else {
+        // if assigned to someone who isn't system, move all assignees to the custom field
+        await modifyTask(
+          task.id,
+          process.env.wrike_folder_orders,
+          process.env.wrike_perm_access_token,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          { id: "IEAF5SOTJUAGAA33", value: task.responsibleIds.join(",") },
+          null,
+          null,
+          null,
+          null
+        );
+      }
+    }
+  } catch (error) {
+    console.error(
+      `there was an issue fixing the assignee on a task: ${error} \n ${error.stack}`
+    );
+  }
+  res.status(200).send();
 });
 
 app.use("*", (req, res) => {
