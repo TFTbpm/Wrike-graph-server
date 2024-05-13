@@ -1168,11 +1168,14 @@ app.post("/wrike/fix_assignee", async (req, res) => {
       }
 
       let taskData = await taskResponse.json();
-      taskData = taskData.data;
+      taskData = taskData.data[0];
+      console.log(taskData);
 
-      for (let customField of taskData.customFields) {
-        if (customField.id == "IEAF5SOTJUAGAA33") {
-          users = customField.value.split(",");
+      if (taskData.customFields) {
+        for (let customField of taskData.customFields) {
+          if (customField.id == "IEAF5SOTJUAGAA33") {
+            users = customField.value.split(",");
+          }
         }
       }
 
@@ -1180,9 +1183,10 @@ app.post("/wrike/fix_assignee", async (req, res) => {
         task.addedResponsibles.includes("KUAQ65OT") ||
         task.addedResponsibles.length === 0
       ) {
+        console.log("system assignee");
         // if assigned to system, then remove system and add in the user custom field
         await modifyTask(
-          task.id,
+          task.taskId,
           process.env.wrike_folder_orders,
           process.env.wrike_perm_access_token,
           null,
@@ -1199,10 +1203,11 @@ app.post("/wrike/fix_assignee", async (req, res) => {
           ["KUAQ65OT"],
           null
         );
-      } else {
+      } else if (taskData.responsibleIds) {
+        console.log("task was assigned");
         // if assigned to someone who isn't system, move all assignees to the custom field
-        await modifyTask(
-          task.id,
+        let t = await modifyTask(
+          task.taskId,
           process.env.wrike_folder_orders,
           process.env.wrike_perm_access_token,
           null,
@@ -1213,7 +1218,12 @@ app.post("/wrike/fix_assignee", async (req, res) => {
           null,
           null,
           null,
-          { id: "IEAF5SOTJUAGAA33", value: task.responsibleIds.join(",") },
+          [
+            {
+              id: "IEAF5SOTJUAGAA33",
+              value: taskData.responsibleIds.join(","),
+            },
+          ],
           null,
           null,
           null,
