@@ -1146,7 +1146,7 @@ app.post("/graph/order", async (req, res) => {
   res.status(200).send("good");
 });
 
-app.post("wrike/fix_assignee", async (req, res) => {
+app.post("/wrike/fix_assignee", async (req, res) => {
   try {
     console.log(JSON.stringify(req.body));
     for (let task of req.body) {
@@ -1225,6 +1225,7 @@ app.post("wrike/fix_assignee", async (req, res) => {
     console.error(
       `there was an issue fixing the assignee on a task: ${error} \n ${error.stack}`
     );
+    res.status(202).send();
   }
   res.status(200).send();
 });
