@@ -139,6 +139,7 @@ async function modifyTask(
   while (retryCount < maxRetries) {
     try {
       if (taskId === undefined || folderId === undefined) {
+        console.log("key info undefined for modify task");
         return;
       }
       const stringArr = [
