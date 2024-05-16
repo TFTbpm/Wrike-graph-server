@@ -318,6 +318,7 @@ app.post("/wrike/rfq/reviewer", addAPIIdToReq, async (req, res) => {
   }
 
   try {
+    console.log(`request body: ${req.body}`);
     await modifyCustomFieldFromWrike(req.body, rfqCollection, users, "rfq");
   } catch (error) {
     console.error(error);
@@ -1263,6 +1264,40 @@ app.post("/wrike/fix_assignee", async (req, res) => {
     res.status(202).send();
   }
   res.status(200).send();
+});
+
+app.post("/receiving_approval/:type", async (req, res) => {
+  const key = req.get("secret-key");
+
+  if (key !== process.env.powerAutomateKey) {
+    res.status(401).send();
+    return;
+  }
+  const requestOptions = {
+    headers: {
+      Authorization: `Bearer ${process.env.wrike_perm_access_token}`,
+    },
+  };
+
+  if (req.params.type === "intial") {
+    // send comment to task with link
+    const queryParameter = encodeURI(req.body.teamsURL);
+    let uri = `https://www.wrike.com/api/v4/tasks/${req.body.wrikeItem}/comments?text=${queryParameter}`;
+    let response = await fetch(uri, requestOptions);
+    if (!response.ok) {
+      console.log(`error posting comment url \n ${await response.text()}`);
+      res.status(500).send("failed to post comment url");
+    }
+    console.log("successfully sent comment");
+    res.status(200).send();
+  } else if (req.params.type === "approved") {
+    // change approved field
+    app;
+  } else if (req.params.type === "denied") {
+    // change approved field
+  } else if (req.params.type === "timeout") {
+    // Resubmit the approval
+  }
 });
 
 app.use("*", (req, res) => {
