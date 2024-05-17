@@ -1149,7 +1149,6 @@ app.post("/graph/order", async (req, res) => {
 
 app.post("/wrike/fix_assignee", async (req, res) => {
   try {
-    console.log(JSON.stringify(req.body));
     for (let task of req.body) {
       let users;
 
@@ -1277,11 +1276,14 @@ app.post("/receiving_approval/:type", async (req, res) => {
     headers: {
       Authorization: `Bearer ${process.env.wrike_perm_access_token}`,
     },
+    method: "POST",
   };
 
-  if (req.params.type === "intial") {
+  if (req.params.type === "initial") {
     // send comment to task with link
-    const queryParameter = encodeURI(req.body.teamsURL);
+    const queryParameter = encodeURI(
+      `<a href="${req.body.teamsURL}">Link to approval</a>`
+    );
     let uri = `https://www.wrike.com/api/v4/tasks/${req.body.wrikeItem}/comments?text=${queryParameter}`;
     let response = await fetch(uri, requestOptions);
     if (!response.ok) {
@@ -1298,6 +1300,28 @@ app.post("/receiving_approval/:type", async (req, res) => {
   } else if (req.params.type === "timeout") {
     // Resubmit the approval
   }
+});
+
+app.post("/requesting_approval", async (req, res) => {
+  // Recieve hook
+  // Need task id
+  // Request task data
+  // Need approver field
+  // Need link to task
+  // Request attachments
+  // Iterate attachments
+  // let example = {
+  //   title: "blah",
+  //   attachments: [
+  //     {
+  //       Name: "name",
+  //       ContentBytes: "blah",
+  //     },
+  //   ],
+  //   approvers: "approverNames",
+  //   url: "t",
+  //   wrikeItem: "w",
+  // };
 });
 
 app.use("*", (req, res) => {
