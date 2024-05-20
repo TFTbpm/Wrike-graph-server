@@ -318,6 +318,7 @@ app.post("/wrike/rfq/reviewer", addAPIIdToReq, async (req, res) => {
   }
 
   try {
+    console.log(`request body: ${req.body}`);
     await modifyCustomFieldFromWrike(req.body, rfqCollection, users, "rfq");
   } catch (error) {
     console.error(error);
@@ -492,20 +493,22 @@ app.post("/wrike/rfq/delete", async (req, res) => {
     console.error(
       `there was an issue with connecting to mongo for deleting: ${e}`
     );
+    res.status(202).send();
+    return;
   }
-  for (let task of req.body) {
-    try {
+  try {
+    for (let task of req.body) {
       if (task.taskId) {
         const deleteResult = await rfqs.deleteMany({ id: task.taskId });
         console.log(deleteResult);
       } else {
         console.log(`taskID undefined`);
       }
-    } catch (e) {
-      console.error(
-        `there was a problem deleting task ${task.taskId}: \n ${e}`
-      );
     }
+  } catch (e) {
+    console.error(`there was a problem deleting task ${task.taskId}: \n ${e}`);
+    res.status(202).send();
+    return;
   }
   try {
     if (rfqs) {
@@ -515,6 +518,8 @@ app.post("/wrike/rfq/delete", async (req, res) => {
     console.error(
       `there was an error closing the connection: ${e} \n ${e.stack}`
     );
+    res.status(202).send();
+    return;
   }
   res.status(202).send();
 });
@@ -1148,7 +1153,6 @@ app.post("/graph/order", async (req, res) => {
 
 app.post("/wrike/fix_assignee", async (req, res) => {
   try {
-    console.log(JSON.stringify(req.body));
     for (let task of req.body) {
       let users;
 
@@ -1263,6 +1267,65 @@ app.post("/wrike/fix_assignee", async (req, res) => {
     res.status(202).send();
   }
   res.status(200).send();
+});
+
+app.post("/receiving_approval/:type", async (req, res) => {
+  const key = req.get("secret-key");
+
+  if (key !== process.env.powerAutomateKey) {
+    res.status(401).send();
+    return;
+  }
+  const requestOptions = {
+    headers: {
+      Authorization: `Bearer ${process.env.wrike_perm_access_token}`,
+    },
+    method: "POST",
+  };
+
+  if (req.params.type === "initial") {
+    // send comment to task with link
+    const queryParameter = encodeURI(
+      `<a href="${req.body.teamsURL}">Link to approval</a>`
+    );
+    let uri = `https://www.wrike.com/api/v4/tasks/${req.body.wrikeItem}/comments?text=${queryParameter}`;
+    let response = await fetch(uri, requestOptions);
+    if (!response.ok) {
+      console.log(`error posting comment url \n ${await response.text()}`);
+      res.status(500).send("failed to post comment url");
+    }
+    console.log("successfully sent comment");
+    res.status(200).send();
+  } else if (req.params.type === "approved") {
+    // change approved field
+    app;
+  } else if (req.params.type === "denied") {
+    // change approved field
+  } else if (req.params.type === "timeout") {
+    // Resubmit the approval
+  }
+});
+
+app.post("/requesting_approval", async (req, res) => {
+  // Recieve hook
+  // Need task id
+  // Request task data
+  // Need approver field
+  // Need link to task
+  // Request attachments
+  // Iterate attachments
+  // let example = {
+  //   title: "blah",
+  //   attachments: [
+  //     {
+  //       Name: "name",
+  //       ContentBytes: "blah",
+  //     },
+  //   ],
+  //   approvers: "approverNames",
+  //   url: "t",
+  //   wrikeItem: "w",
+  // };
 });
 
 app.use("*", (req, res) => {
