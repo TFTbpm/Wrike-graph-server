@@ -494,19 +494,17 @@ app.post("/wrike/rfq/delete", async (req, res) => {
       `there was an issue with connecting to mongo for deleting: ${e}`
     );
   }
-  for (let task of req.body) {
-    try {
+  try {
+    for (let task of req.body) {
       if (task.taskId) {
         const deleteResult = await rfqs.deleteMany({ id: task.taskId });
         console.log(deleteResult);
       } else {
         console.log(`taskID undefined`);
       }
-    } catch (e) {
-      console.error(
-        `there was a problem deleting task ${task.taskId}: \n ${e}`
-      );
     }
+  } catch (e) {
+    console.error(`there was a problem deleting task ${task.taskId}: \n ${e}`);
   }
   try {
     if (rfqs) {
