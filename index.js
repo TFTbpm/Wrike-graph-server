@@ -493,6 +493,8 @@ app.post("/wrike/rfq/delete", async (req, res) => {
     console.error(
       `there was an issue with connecting to mongo for deleting: ${e}`
     );
+    res.status(202).send();
+    return;
   }
   try {
     for (let task of req.body) {
@@ -505,6 +507,8 @@ app.post("/wrike/rfq/delete", async (req, res) => {
     }
   } catch (e) {
     console.error(`there was a problem deleting task ${task.taskId}: \n ${e}`);
+    res.status(202).send();
+    return;
   }
   try {
     if (rfqs) {
@@ -514,6 +518,8 @@ app.post("/wrike/rfq/delete", async (req, res) => {
     console.error(
       `there was an error closing the connection: ${e} \n ${e.stack}`
     );
+    res.status(202).send();
+    return;
   }
   res.status(202).send();
 });
