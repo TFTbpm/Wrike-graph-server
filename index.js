@@ -1015,10 +1015,9 @@ app.post("/graph/datasheets", async (req, res) => {
       try {
         return await processDataSheet(ds, wrikeTitles, users);
       } catch (e) {
-        console.error(
+        throw new Error(
           `there was an issue processing datasheets (in route /graph/datasheets): ${e} \n ${e.stack}`
         );
-        return res.status(500).end("temp error processing datasheets");
       }
     });
     await Promise.all(processPromises);
