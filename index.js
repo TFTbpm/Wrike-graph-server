@@ -912,7 +912,9 @@ app.post("/graph/*", async (req, res, next) => {
     return;
   }
 
-  if (req.body.value[0].clientState !== process.env.graph_subscription_secret) {
+  if (
+    req.body.value[0]?.clientState !== process.env.graph_subscription_secret
+  ) {
     res.status(400).send();
     console.log(
       `client state didnt match: ${JSON.stringify(req.body.value[0])}`
@@ -947,6 +949,7 @@ app.post("/graph/datasheets", async (req, res) => {
     );
   } catch (e) {
     console.log(`There was an error fetching datasheets: ${e}`);
+    return res.status(500).end("temp error fetching datasheets");
   }
 
   try {
@@ -958,6 +961,7 @@ app.post("/graph/datasheets", async (req, res) => {
     console.error(
       `there was an error connecting to mongo (/graph/datasheets): ${error}`
     );
+    return res.status(500).end("temp error connecting to db");
   }
 
   let datasheetPromises;
@@ -998,7 +1002,10 @@ app.post("/graph/datasheets", async (req, res) => {
       };
     });
   } catch (e) {
-    console.log(`there was an error iterating datasheets: ${e} \n ${e.stack}`);
+    console.error(
+      `there was an error iterating datasheets: ${e} \n ${e.stack}`
+    );
+    return res.status(500).end("temp error iterating datasheets");
   }
   const currentHistory = await Promise.all(datasheetPromises);
 
@@ -1011,12 +1018,13 @@ app.post("/graph/datasheets", async (req, res) => {
         console.error(
           `there was an issue processing datasheets (in route /graph/datasheets): ${e} \n ${e.stack}`
         );
-        return false;
+        return res.status(500).end("temp error processing datasheets");
       }
     });
     await Promise.all(processPromises);
   } catch (e) {
-    console.log(`error mapping datasheets: ${e}`);
+    console.error(`error mapping datasheets: ${e}`);
+    return res.status(500).end("temp error mapping datasheets");
   } finally {
     if (client) {
       console.log("closing client");
@@ -1024,7 +1032,7 @@ app.post("/graph/datasheets", async (req, res) => {
     }
   }
 
-  res.status(200).send("good");
+  return res.status(200).send("good");
 });
 
 app.post("/graph/order", async (req, res) => {
@@ -1042,7 +1050,8 @@ app.post("/graph/order", async (req, res) => {
       skipToken
     );
   } catch (e) {
-    console.log(`There was an error fetching orders: ${e}`);
+    console.error(`There was an error fetching orders: ${e}`);
+    return res.status(500).end("temp error");
   }
 
   try {
@@ -1054,6 +1063,7 @@ app.post("/graph/order", async (req, res) => {
     console.error(
       `there was an issue connecting to mongo (/graph/order): ${error}`
     );
+    return res.status(500).end("temp error");
   }
   let orderPromises;
 
@@ -1110,6 +1120,7 @@ app.post("/graph/order", async (req, res) => {
     });
   } catch (e) {
     console.error(`there was an error iterating order: ${e}`);
+    return res.status(500).end("temp error");
   }
 
   let currentHistory;
@@ -1119,17 +1130,18 @@ app.post("/graph/order", async (req, res) => {
     console.error(
       `there was an error awaiting order promises: ${error} \n ${error.stack}`
     );
+    return res.status(500).end("temp error");
   }
 
   try {
     const processPromises = currentHistory.map(async (order) => {
-      console.log(order);
       try {
         return await processOrder(order, ordersCollection);
       } catch (e) {
         console.error(
           `there was an issue processing orders (in route /graph/order): ${e} \n ${e.stack}`
         );
+        return res.status(500).end("temp error");
       }
     });
 
@@ -1148,7 +1160,7 @@ app.post("/graph/order", async (req, res) => {
       );
     }
   }
-  res.status(200).send("good");
+  return res.status(200).send("good");
 });
 
 app.post("/wrike/fix_assignee", async (req, res) => {

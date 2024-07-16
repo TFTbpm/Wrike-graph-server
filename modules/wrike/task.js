@@ -104,7 +104,7 @@ async function createTask(
     } catch (error) {
       lastError = error;
       console.error(
-        `An error occured while modifying a task: ${error} \n URL: ${URI} \n retry ${retryCount}`
+        `An error occured while modifying a task: ${error}\n${await response.text()} \n URL: ${URI} \n retry ${retryCount}`
       );
       retryCount++;
       await new Promise((p) => {
@@ -130,7 +130,8 @@ async function modifyTask(
   customStatus,
   fields,
   removeResponsibles,
-  title
+  title,
+  restore
 ) {
   let URI;
   const maxRetries = 3;
@@ -163,6 +164,7 @@ async function modifyTask(
         fields: fields || null,
         removeResponsibles: removeResponsibles || null,
         title: title || null,
+        restore: restore || null,
       };
       const queryParams = [];
 
@@ -188,7 +190,41 @@ async function modifyTask(
         },
       });
       if (!response.ok) {
-        throw new Error(`Request failed with status ${response.status}`);
+        let errormsg = JSON.parse(await response.text());
+        console.log(errormsg);
+
+        // if its a deleted task, restore it
+        // ! this is opinionated that if something calls this function it trumps what Wrike has already done
+        if (
+          errormsg.errorDescription ===
+          "Operation is not allowed on deleted Folder/Task"
+        ) {
+          modifyTask(
+            taskId,
+            folderId,
+            access_token,
+            description,
+            status,
+            importance,
+            dates,
+            shareds,
+            parents,
+            addResponsibles,
+            metadata,
+            customFields,
+            customStatus,
+            fields,
+            removeResponsibles,
+            title,
+            true
+          );
+        }
+
+        throw new Error(
+          `Request failed with status ${
+            response.status
+          }\n${await response.text()}`
+        );
       }
       const data = await response.json();
       return await data;
@@ -581,7 +617,7 @@ async function processDataSheet(datasheet, wrikeTitles, users) {
         ).then(async (data) => {
           try {
             await wrikeTitles.findOneAndUpdate(
-              { id: data.data[0].id },
+              { id: data?.data[0].id },
               { $set: { graphID: datasheet.graphID } }
             );
             console.log("updated datasheet");
