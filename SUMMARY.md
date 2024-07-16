@@ -5,6 +5,6 @@
 ## Docs
 
 * [💾 Server](docs/server.md)
-* [🗄 Mongo](docs/mongo.md)
+* [🗄️ Mongo](docs/mongo.md)
 * [🔷 Graph](docs/graph.md)
 * [✅ Wrike](docs/wrike.md)
