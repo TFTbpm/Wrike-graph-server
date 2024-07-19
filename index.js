@@ -1162,6 +1162,7 @@ app.post("/graph/order", async (req, res) => {
   return res.status(200).send("good");
 });
 
+// This make it possible to forward emails without changing assignee
 app.post("/wrike/fix_assignee", async (req, res) => {
   try {
     for (let task of req.body) {
