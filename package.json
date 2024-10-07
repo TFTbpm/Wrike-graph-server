@@ -5,23 +5,28 @@
   "main": "index.js",
   "type": "commonjs",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "set NODE_ENV=test&& mocha --reported spec --exit",
     "dev": "nodemon index.js",
     "start": "node index.js"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@azure/identity": "^3.3.0",
+    "@azure/identity": "^4.4.1",
     "@microsoft/microsoft-graph-client": "^3.0.6",
+    "chai": "^5.1.1",
+    "chai-http": "^5.0.0",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
     "express-rate-limit": "^7.0.2",
     "express-validator": "^7.0.1",
+    "mocha": "^10.7.3",
     "mongodb": "^6.2.0",
     "node-cron": "^3.0.3",
     "nodemon": "^3.0.1",
-    "path": "^0.12.7"
+    "path": "^0.12.7",
+    "sinon": "^18.0.0",
+    "supertest": "^7.0.0"
   }
 }

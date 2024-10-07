@@ -28,6 +28,7 @@ async function createTask(
   const maxRetries = 3;
   let retryCount = 0;
   const retryDelay = 1000;
+  let response;
   while (retryCount < maxRetries) {
     try {
       if (title === undefined || folderId === undefined) {
@@ -90,7 +91,7 @@ async function createTask(
       URI = `https://www.wrike.com/api/v4/folders/${folderId}/tasks?${queryString}`;
       // console.log(`URL: ${URL} \n tokentype:${typeof access_token}`);
 
-      const response = await fetch(URI, requestOptions);
+      response = await fetch(URI, requestOptions);
       // console.log(response);
 
       if (!response.ok) {
@@ -104,7 +105,7 @@ async function createTask(
     } catch (error) {
       lastError = error;
       console.error(
-        `An error occured while modifying a task: ${error}\n${await response.text()} \n URL: ${URI} \n retry ${retryCount}`
+        `An error occured while modifying a task: ${error}\n${await response?.text()} \n URL: ${URI} \n retry ${retryCount}`
       );
       retryCount++;
       await new Promise((p) => {
