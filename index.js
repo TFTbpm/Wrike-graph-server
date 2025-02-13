@@ -269,6 +269,7 @@ app.post("/wrike/*", header("X-Hook-Secret").notEmpty(), (req, res, next) => {
     console.error(
       `there was an error valdiating the source of the request: ${error} \n ${error.stack}`
     );
+    res.status(400).send(`Error`);
   }
 });
 
